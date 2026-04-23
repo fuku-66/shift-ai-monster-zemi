@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+._*
+
+# IDE
+.vscode/
+.idea/
+
+# 依存関係
+node_modules/
+
+# clasp 認証・設定（機密）
+gas/clasp/.clasprc.json
+gas/clasp/.clasp.json
+
+# 一時ファイル
+*.log
+*.tmp

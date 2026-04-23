@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📜 アーカイブ — ドラゴンの書</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <h1 class="site-title"><a href="index.html">🐲 ドラゴンの書</a></h1>
+    <p class="site-subtitle">アーカイブ</p>
+    <nav class="site-nav">
+      <a href="index.html">🏠 ホーム</a>
+      <a href="missions.html">🎯 課題一覧</a>
+      <a href="archive.html" class="is-active">📜 アーカイブ</a>
+      <a href="how-to.html">📖 使い方・ルール</a>
+    </nav>
+  </header>
+
+  <main class="main-archive">
+
+    <section class="archive-filter">
+      <h2 class="section-title">📜 みんなの提出アーカイブ</h2>
+      <div class="filter-row">
+        <label>教科:
+          <select id="filterSubject">
+            <option value="">すべて</option>
+            <option value="英語">英語</option>
+            <option value="数学">数学</option>
+            <option value="国語">国語</option>
+            <option value="その他">その他</option>
+          </select>
+        </label>
+        <span id="resultCount" class="result-count">読み込み中...</span>
+      </div>
+    </section>
+
+    <section>
+      <ul id="archiveList" class="submission-list submission-list--clickable">
+        <li class="submission-list__loading">データ読み込み中...</li>
+      </ul>
+      <nav id="pagination" class="pagination" aria-label="ページナビ"></nav>
+    </section>
+
+    <section class="footer-links">
+      <a href="index.html" class="link-box">← トップへ戻る</a>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>SHIFT AIジュニア ドラゴン育成プロジェクト</p>
+  </footer>
+
+  <!-- 🎴 作品ポップアップ（モーダル） -->
+  <div id="submissionModal" class="modal" aria-hidden="true">
+    <div class="modal__backdrop" data-modal-close></div>
+    <div class="modal__content" role="dialog" aria-modal="true">
+      <button class="modal__close" data-modal-close aria-label="閉じる">×</button>
+      <div id="modalBody" class="modal__body">
+        <!-- JSで注入 -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__PAGE__ = 'archive';
+  </script>
+  <script src="assets/js/missions.js"></script>
+  <script src="assets/js/script.js"></script>
+</body>
+</html>

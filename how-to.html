@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📖 使い方 — ドラゴンの書</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <h1 class="site-title"><a href="index.html">🐲 ドラゴンの書</a></h1>
+    <p class="site-subtitle">使い方・ルール</p>
+    <nav class="site-nav">
+      <a href="index.html">🏠 ホーム</a>
+      <a href="missions.html">🎯 課題一覧</a>
+      <a href="archive.html">📜 アーカイブ</a>
+      <a href="how-to.html" class="is-active">📖 使い方・ルール</a>
+    </nav>
+  </header>
+
+  <main class="main-howto">
+
+    <section class="howto-section">
+      <h2 class="section-title">🐲 このサイトについて</h2>
+      <p>
+        ここは <strong>SHIFT AIジュニア</strong> のみんなで
+        <strong>1体のドラゴンを育てる</strong> ゲーミフィケーションサイトだよ。
+      </p>
+      <p>
+        AIを使って学習したこと・作ったものを提出すると、講師が承認してXP（経験値）が加算されて、ドラゴンが進化していくよ🔥
+      </p>
+    </section>
+
+    <section class="howto-section">
+      <h2 class="section-title">📝 提出の流れ</h2>
+      <ol class="steps">
+        <li>課題カタログから好きな課題カードを選ぶ</li>
+        <li>「📝 提出する」ボタンをクリック → Googleフォームが開く</li>
+        <li><strong>名前 / 提出内容 / コメント</strong> を入力して送信</li>
+        <li>講師（SHIFT AIジュニア運営）が内容をチェック</li>
+        <li><strong>承認されると +20 XP</strong> / 差し戻しはDiscordで通知とフィードバック</li>
+        <li>XPがたまるとドラゴンがLv.UPして進化！</li>
+      </ol>
+    </section>
+
+    <section class="howto-section howto-warning">
+      <h2 class="section-title">⚠️ AIを使うときの約束</h2>
+      <p>
+        このサイトの課題は <strong>AIツールを使った学習</strong> を中心にしています。
+        利用するときは以下の3つを守ってね👇
+      </p>
+      <ol class="steps">
+        <li>
+          <strong>年齢制限を守る</strong><br>
+          <span class="howto-note">ChatGPTは13歳以上（18歳未満は保護者の同意が必要）／ Claudeは18歳以上のみ／ Geminiは13歳以上。各ツールの規約を確認してから使おう。</span>
+        </li>
+        <li>
+          <strong>個人情報は入力しない</strong><br>
+          <span class="howto-note">本名・住所・学校名・電話番号・写真などはAIに入れないこと。</span>
+        </li>
+        <li>
+          <strong>AIの答えは"下書き"</strong><br>
+          <span class="howto-note">AIは間違えることがあるから、必ず自分で確認してから提出してね。丸パクリはNG。</span>
+        </li>
+      </ol>
+      <p class="howto-note">💡 ヒントに書いてあるツール名は一例だよ。安全に使えるツールを自由に選んでOK。</p>
+    </section>
+
+    <section class="howto-section">
+      <h2 class="section-title">🎯 XP・Lvシステム</h2>
+      <p><strong>1提出（承認済み）= +20 XP</strong></p>
+
+      <div class="evolution-table">
+        <div class="evolution-card">
+          <img src="assets/sprites/lv1-egg.png" alt="Lv.1 タマゴ" class="pixel-sprite evolution-card__sprite">
+          <div class="evolution-card__info">
+            <div class="evolution-card__lv">Lv.1</div>
+            <div class="evolution-card__name">タマゴ</div>
+            <div class="evolution-card__xp">0 XP 〜</div>
+          </div>
+        </div>
+        <div class="evolution-card">
+          <img src="assets/sprites/lv2-baby.png" alt="Lv.2 ベビー" class="pixel-sprite evolution-card__sprite">
+          <div class="evolution-card__info">
+            <div class="evolution-card__lv">Lv.2</div>
+            <div class="evolution-card__name">ベビードラゴン</div>
+            <div class="evolution-card__xp">100 XP 〜</div>
+          </div>
+        </div>
+        <div class="evolution-card evolution-card--locked">
+          <div class="evolution-card__sprite evolution-card__placeholder">❓</div>
+          <div class="evolution-card__info">
+            <div class="evolution-card__lv">Lv.3</div>
+            <div class="evolution-card__name">若竜</div>
+            <div class="evolution-card__xp">400 XP 〜</div>
+          </div>
+        </div>
+        <div class="evolution-card evolution-card--locked">
+          <div class="evolution-card__sprite evolution-card__placeholder">❓</div>
+          <div class="evolution-card__info">
+            <div class="evolution-card__lv">Lv.4</div>
+            <div class="evolution-card__name">成竜</div>
+            <div class="evolution-card__xp">1100 XP 〜</div>
+          </div>
+        </div>
+        <div class="evolution-card evolution-card--locked">
+          <div class="evolution-card__sprite evolution-card__placeholder">👑</div>
+          <div class="evolution-card__info">
+            <div class="evolution-card__lv">Lv.5</div>
+            <div class="evolution-card__name">神竜（Max）</div>
+            <div class="evolution-card__xp">2400 XP 〜</div>
+          </div>
+        </div>
+      </div>
+      <p class="howto-note">※ Lv.3以降のビジュアルは、ドラゴンが進化したときに解禁されるよ🎁</p>
+    </section>
+
+    <section class="howto-section">
+      <h2 class="section-title">❓ よくある質問</h2>
+      <details>
+        <summary>Q. 何を提出すればいい？</summary>
+        <p>A. 勉強したこと・作ったもの・気づいたこと、なんでもOK。教科は「英語・数学・国語・その他（クリエイティブ・プログラミング等）」から選んでね。</p>
+      </details>
+      <details>
+        <summary>Q. 承認されないことはある？</summary>
+        <p>A. 内容が不明瞭だったり、ふざけた提出だったりすると差し戻しになります。フィードバックをもとに改善して再提出してね。</p>
+      </details>
+      <details>
+        <summary>Q. ドラゴンは1体だけ？</summary>
+        <p>A. Phase 1では「全員で1体」を育てます🐲 将来は教科別ドラゴンやレア進化も計画中！</p>
+      </details>
+      <details>
+        <summary>Q. 保護者も参加できる？</summary>
+        <p>A. できます！お子さんと一緒に学んだことを提出してOK。</p>
+      </details>
+    </section>
+
+    <section class="footer-links">
+      <a href="index.html" class="link-box">← トップへ戻る</a>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>SHIFT AIジュニア ドラゴン育成プロジェクト</p>
+  </footer>
+
+</body>
+</html>

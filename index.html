@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐲 ドラゴンの書 — SHIFT AIジュニア育成プロジェクト</title>
+  <meta name="description" content="SHIFT AIジュニアの学習アウトプットで、みんなで1体のドラゴンを育てよう。">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <h1 class="site-title">🐲 ドラゴンの書</h1>
+    <p class="site-subtitle">SHIFT AIジュニア育成プロジェクト</p>
+    <nav class="site-nav">
+      <a href="index.html"   class="is-active">🏠 ホーム</a>
+      <a href="missions.html">🎯 課題一覧</a>
+      <a href="archive.html">📜 アーカイブ</a>
+      <a href="how-to.html">📖 使い方・ルール</a>
+    </nav>
+  </header>
+
+  <main class="main-top">
+
+    <!-- 📖 はじめての人への導線（トップ上部） -->
+    <section class="intro-banner">
+      <div class="intro-banner__text">
+        <strong>はじめまして！🐲</strong>
+        <span>使い方とAI利用のルールを最初にチェックしてね</span>
+      </div>
+      <a href="how-to.html" class="btn btn--outline">📖 使い方・ルールを見る</a>
+    </section>
+
+
+    <!-- 🔝 上部バナー: ドラゴン（右）＋ステータス（左） -->
+    <section class="top-banner">
+      <div class="top-banner__status">
+        <div class="lv-label">
+          <span class="lv-prefix">Lv.</span>
+          <span id="lvNumber">1</span>
+          <span class="lv-name" id="lvName">タマゴ</span>
+        </div>
+        <div class="xp-bar">
+          <div class="xp-bar__fill" id="xpBarFill" style="width: 0%"></div>
+          <div class="xp-bar__text">
+            <span id="xpCurrent">0</span> / <span id="xpNext">100</span> XP
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stat">
+            <span class="stat__value" id="totalSubmissions">0</span>
+            <span class="stat__label">総提出</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value" id="totalMembers">0</span>
+            <span class="stat__label">参加人数</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value" id="totalXp">0</span>
+            <span class="stat__label">累積XP</span>
+          </div>
+        </div>
+      </div>
+      <div class="top-banner__dragon">
+        <div class="dragon-glow"></div>
+        <img
+          id="dragonSprite"
+          src="assets/sprites/lv1-egg.png"
+          alt="ドラゴン"
+          class="pixel-sprite sprite-breathing">
+      </div>
+    </section>
+
+    <!-- 📋 おすすめ課題（6件だけ・軽量版） -->
+    <section class="missions-section missions-section--featured">
+      <div class="missions-header">
+        <h2 class="section-title">⚔️ おすすめの課題</h2>
+        <a href="missions.html" class="btn btn--outline">🎯 全20件を見る →</a>
+      </div>
+      <div id="missionGrid" class="mission-grid">
+        <div class="submission-list__loading">課題を読み込み中...</div>
+      </div>
+    </section>
+
+    <!-- 📜 最新の提出（軽量版） -->
+    <section class="recent-submissions">
+      <h2 class="section-title">📜 さいきんの提出</h2>
+      <ul id="recentList" class="submission-list submission-list--compact">
+        <li class="submission-list__loading">データ読み込み中...</li>
+      </ul>
+      <a href="archive.html" class="btn btn--secondary">アーカイブをすべて見る →</a>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>SHIFT AIジュニア ドラゴン育成プロジェクト</p>
+    <p class="footer-note">Phase 1 – βテスト運用中</p>
+  </footer>
+
+  <!-- 🎴 作品ポップアップ（モーダル） -->
+  <div id="submissionModal" class="modal" aria-hidden="true">
+    <div class="modal__backdrop" data-modal-close></div>
+    <div class="modal__content" role="dialog" aria-modal="true">
+      <button class="modal__close" data-modal-close aria-label="閉じる">×</button>
+      <div id="modalBody" class="modal__body">
+        <!-- JSで注入 -->
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/missions.js"></script>
+  <script src="assets/js/script.js"></script>
+</body>
+</html>
