@@ -211,6 +211,51 @@ function notifyApproval_(sh, row, header) {
 // フィードバック欄はmariko個人の覚え書き用として残す
 
 /* ================================================================
+   フォーム送信時のDiscord通知
+   ================================================================ */
+function onFormSubmit(e) {
+  try {
+    if (!e || !e.namedValues) return;
+    const data = e.namedValues;
+    const pickFirst = (name) => {
+      const v = data[name];
+      return v && v[0] ? v[0] : '';
+    };
+    const nickname     = pickFirst('ニックネーム') || 'ゲスト';
+    const missionField = pickFirst('挑戦した課題') || '';
+    const missionId    = extractMissionId_(missionField);
+    const missionTitle = extractMissionTitle_(missionField) || missionField;
+    const subject      = subjectFromId_(missionId);
+    const difficulty   = difficultyFromId_(missionId);
+    const stars        = '★'.repeat(difficulty) + '☆'.repeat(5 - difficulty);
+    const content      = pickFirst('提出内容') || '';
+    const excerpt      = content.length > 120 ? content.substring(0, 120) + '…' : content;
+    const xpPotential  = XP_BY_STAR[difficulty] || 15;
+
+    const payload = {
+      username: '🐲 ドラゴンの書',
+      embeds: [{
+        title: '📥 新しい提出が届きました！',
+        description:
+          '**' + nickname + '** さんが提出してくれたよ📝\n\n' +
+          '📚 ' + missionTitle + '\n' +
+          subject + '　' + stars + '　承認で **+' + xpPotential + ' XP**',
+        color: 0x3498DB,
+        fields: [
+          { name: '📝 内容（抜粋）', value: excerpt || '(内容なし)', inline: false }
+        ],
+        footer: { text: '講師がチェック中...承認されたらドラゴンが育つよ🔥' },
+        timestamp: new Date().toISOString(),
+      }],
+    };
+    sendDiscord_(payload);
+    Logger.log('提出通知送信: ' + nickname + ' - ' + missionTitle);
+  } catch (err) {
+    Logger.log('onFormSubmit error: ' + err);
+  }
+}
+
+/* ================================================================
    いいねトグル（doPostから呼ばれる）
    ================================================================ */
 function toggleLike_(id, delta) {
@@ -319,14 +364,33 @@ function calcLv_(xp) {
    ================================================================ */
 function installApprovalTrigger() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  // 既存のトリガーを削除（重複防止）
   const triggers = ScriptApp.getProjectTriggers();
   triggers.forEach(t => {
     if (t.getHandlerFunction() === 'onApprovalEdit') ScriptApp.deleteTrigger(t);
   });
-  // onEdit トリガー追加
   ScriptApp.newTrigger('onApprovalEdit').forSpreadsheet(ss).onEdit().create();
   safeAlert('✅ 承認トリガーを登録しました。\n今後「承認」列にTRUEを入れるとDiscord通知&XP加算が自動で動きます。');
+}
+
+/**
+ * フォーム送信時のDiscordトリガーを登録する（初回のみ手動実行）
+ */
+function installFormSubmitTrigger() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(t => {
+    if (t.getHandlerFunction() === 'onFormSubmit') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('onFormSubmit').forSpreadsheet(ss).onFormSubmit().create();
+  safeAlert('✅ 提出トリガーを登録しました。\nフォームから送信されるたびにDiscord通知が飛びます。');
+}
+
+/**
+ * 全トリガーを一括で登録する（便利関数）
+ */
+function installAllTriggers() {
+  installApprovalTrigger();
+  installFormSubmitTrigger();
 }
 
 /* ================================================================
