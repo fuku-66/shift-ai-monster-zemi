@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>使い方 | モンスター育成プロジェクト</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  .doc-section {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(241,196,15,0.4);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .doc-section h2 {
+    color: #F1C40F;
+    margin-bottom: 16px;
+    font-size: 22px;
+  }
+  .doc-section h3 {
+    color: #d8c5ff;
+    margin: 20px 0 12px;
+    font-size: 16px;
+  }
+  .doc-section p, .doc-section li { font-size: 14px; line-height: 1.8; color: #ddd; }
+  .doc-section ul, .doc-section ol { margin-left: 24px; margin-bottom: 12px; }
+  table.evolution-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  table.evolution-table th, table.evolution-table td {
+    border: 1px solid rgba(241,196,15,0.3);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  table.evolution-table th { background: rgba(241,196,15,0.15); color: #F1C40F; }
+  .step {
+    counter-increment: step-counter;
+    padding-left: 40px;
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .step::before {
+    content: counter(step-counter);
+    position: absolute; left: 0; top: 0;
+    width: 28px; height: 28px;
+    background: #F1C40F; color: #0a0a1f;
+    border-radius: 50%;
+    text-align: center; line-height: 28px;
+    font-weight: bold;
+  }
+  .steps { counter-reset: step-counter; list-style: none; margin-left: 0; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>📖 使い方</h1>
+  <p class="tagline">プロジェクトのルールと進化の仕組み</p>
+  <nav class="nav">
+    <a href="index.html">ホーム</a>
+    <a href="missions.html">課題一覧</a>
+    <a href="archive.html">アーカイブ</a>
+    <a href="how-to.html" class="active">使い方</a>
+  </nav>
+</header>
+
+<main class="container">
+
+  <section class="doc-section">
+    <h2>🥚 プロジェクトの目的</h2>
+    <p>みんなで1体のモンスターを育てよう。<br>
+    あなたの提出が、モンスターの「教科の傾向」を形作ります。<br>
+    数学が多ければゴーレム、英語が多ければフェニックス…バランスよく育てれば伝説のユニコーンに進化！</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>🚶 提出の流れ</h2>
+    <ol class="steps">
+      <li class="step">「課題一覧」から、挑戦する課題を選ぶ</li>
+      <li class="step">AIを使って課題に取り組む</li>
+      <li class="step">「提出する」ボタン → Googleフォームに記入して送信</li>
+      <li class="step">講師がチェックして「承認」 → モンスターが育つ！Discordに通知が届く</li>
+    </ol>
+  </section>
+
+  <section class="doc-section">
+    <h2>🐉 進化の仕組み（4段階）</h2>
+    <table class="evolution-table">
+      <thead>
+        <tr><th>Lv</th><th>姿</th><th>累計XP</th><th>備考</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>🥚 タマゴ</td><td>0〜199 XP</td><td>全員共通</td></tr>
+        <tr><td>2</td><td>🐣 ヒナ</td><td>200〜599 XP</td><td>全員共通</td></tr>
+        <tr><td>3</td><td>子モンスター</td><td>600〜1499 XP</td><td>最強の軸の子モンスターになる</td></tr>
+        <tr><td>4</td><td>最終形態</td><td>1500 XP〜</td><td>5軸が均等なら伝説のユニコーン神獣に！</td></tr>
+      </tbody>
+    </table>
+
+    <h3>軸ごとの最終形態</h3>
+    <ul>
+      <li>🤖 AI基礎が最強 → サイバービースト</li>
+      <li>📖 英語が最強 → フェニックス</li>
+      <li>📐 数学が最強 → クリスタルゴーレム</li>
+      <li>📚 勉強法が最強 → シャドウウルフ</li>
+      <li>🎨 クリエイティブが最強 → レインボードラゴン</li>
+      <li>🦄 5軸の差が10以下（バランス） → ユニコーン神獣（レア）</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>⭐ XP加算ルール</h2>
+    <ul>
+      <li>★1（やさしい） … +15 XP</li>
+      <li>★2 … +25 XP</li>
+      <li>★3（ふつう） … +40 XP</li>
+      <li>★4 … +60 XP</li>
+      <li>★5（チャレンジ） … +80 XP</li>
+    </ul>
+    <p style="margin-top:12px;">XPは <strong>選んだ教科の軸だけ</strong> に加算されます。<br>
+    例：英語の★3課題を出す → 英語軸に +40 XP</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>📝 提出時のヒント</h2>
+    <ul>
+      <li>スクショ1枚＋コメント数行でOK。完璧を目指さなくていい</li>
+      <li>AIにやらせるだけじゃなく、自分の言葉で「気づいたこと」を一言添えるとGood</li>
+      <li>同じ課題に何度挑戦してもOK（ただし内容は変えよう）</li>
+      <li>差し戻しは「もっと良くなるヒント」がもらえるチャンス</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="site-footer">© SHIFT AI ジュニア モンスター育成プロジェクト</footer>
+</body>
+</html>

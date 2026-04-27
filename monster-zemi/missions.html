@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>課題一覧 | モンスター育成プロジェクト</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  .mission-grid { display: grid; gap: 12px; }
+  .subject-block { margin-bottom: 32px; }
+  .subject-block h2 {
+    color: #F1C40F; padding: 8px 12px;
+    border-left: 4px solid #F1C40F;
+    margin-bottom: 12px;
+  }
+  .mission-card {
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 12px; align-items: center;
+  }
+  .mission-id { color: #aaa; font-size: 12px; }
+  .mission-stars { color: #F1C40F; font-size: 14px; letter-spacing: 0.1em; }
+  .mission-title { font-size: 14px; }
+  .mission-xp { color: #F1C40F; font-weight: bold; font-size: 12px; }
+  @media (max-width: 600px) {
+    .mission-card { grid-template-columns: 1fr; }
+  }
+  .filter-bar {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .filter-btn {
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid #F1C40F;
+    color: #d8c5ff;
+    cursor: pointer; border-radius: 4px;
+    font-family: inherit;
+  }
+  .filter-btn.active {
+    background: #F1C40F; color: #0a0a1f; font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>⚔️ 課題一覧</h1>
+  <p class="tagline">5教科×5難易度。挑戦する課題を選ぼう</p>
+  <nav class="nav">
+    <a href="index.html">ホーム</a>
+    <a href="missions.html" class="active">課題一覧</a>
+    <a href="archive.html">アーカイブ</a>
+    <a href="how-to.html">使い方</a>
+  </nav>
+</header>
+
+<main class="container">
+
+  <div class="filter-bar" id="filter-bar">
+    <button class="filter-btn active" data-subject="all">すべて</button>
+    <button class="filter-btn" data-subject="AI基礎">🤖 AI基礎</button>
+    <button class="filter-btn" data-subject="英語">📖 英語</button>
+    <button class="filter-btn" data-subject="数学">📐 数学</button>
+    <button class="filter-btn" data-subject="勉強法">📚 勉強法</button>
+    <button class="filter-btn" data-subject="クリエイティブ">🎨 クリエイティブ</button>
+  </div>
+
+  <div class="cta-section" style="text-align:left; margin: 0 0 24px;">
+    <a id="submit-btn" href="#" target="_blank" class="btn-primary">📝 提出する（Googleフォーム）</a>
+    <p style="color:#aaa; font-size:12px; margin-top:8px;">提出フォームのURLは config.js の FORM_URL に設定してください</p>
+  </div>
+
+  <div id="mission-area"></div>
+
+</main>
+
+<footer class="site-footer">© SHIFT AI ジュニア モンスター育成プロジェクト</footer>
+
+<script src="assets/js/config.js"></script>
+<script>
+(async function () {
+  const cfg = window.MZ_CONFIG;
+  const subjectColor = {
+    'AI基礎': '#4FC3F7', '英語': '#FF8A65', '数学': '#81C784',
+    '勉強法': '#BA68C8', 'クリエイティブ': '#F06292',
+  };
+  const subjectIcon = {
+    'AI基礎': '🤖', '英語': '📖', '数学': '📐', '勉強法': '📚', 'クリエイティブ': '🎨',
+  };
+
+  // 提出ボタン
+  const submitBtn = document.getElementById('submit-btn');
+  if (cfg.FORM_URL && !cfg.FORM_URL.includes('PUT_YOUR')) {
+    submitBtn.href = cfg.FORM_URL;
+  } else {
+    submitBtn.style.opacity = '0.5';
+    submitBtn.title = '提出フォーム未設定';
+  }
+
+  // 課題JSONを読み込む
+  let missions = [];
+  try {
+    const res = await fetch('docs/missions.json');
+    const json = await res.json();
+    missions = json.missions || [];
+  } catch (err) {
+    document.getElementById('mission-area').innerHTML = '<p style="color:#aaa;">課題リストの読み込みに失敗しました</p>';
+    return;
+  }
+
+  function render(filter) {
+    const filtered = filter === 'all' ? missions : missions.filter(m => m.subject === filter);
+    const bySubject = {};
+    filtered.forEach(m => {
+      if (!bySubject[m.subject]) bySubject[m.subject] = [];
+      bySubject[m.subject].push(m);
+    });
+
+    const xpByStar = { 1:15, 2:25, 3:40, 4:60, 5:80 };
+    const html = Object.entries(bySubject).map(([subject, list]) => `
+      <section class="subject-block">
+        <h2 style="border-left-color:${subjectColor[subject]||'#F1C40F'}">${subjectIcon[subject]||''} ${subject}</h2>
+        <div class="mission-grid">
+          ${list.sort((a,b)=>a.difficulty-b.difficulty).map(m => `
+            <div class="mission-card">
+              <div>
+                <div class="mission-id">${m.id}</div>
+                <div class="mission-stars">${'★'.repeat(m.difficulty)}${'☆'.repeat(5-m.difficulty)}</div>
+              </div>
+              <div class="mission-title">${m.title}</div>
+              <div class="mission-xp">+${xpByStar[m.difficulty]} XP</div>
+            </div>
+          `).join('')}
+        </div>
+      </section>
+    `).join('');
+
+    document.getElementById('mission-area').innerHTML = html || '<p style="color:#aaa;">該当する課題がありません</p>';
+  }
+
+  document.getElementById('filter-bar').addEventListener('click', (e) => {
+    if (!e.target.classList.contains('filter-btn')) return;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    render(e.target.dataset.subject);
+  });
+
+  render('all');
+})();
+</script>
+</body>
+</html>

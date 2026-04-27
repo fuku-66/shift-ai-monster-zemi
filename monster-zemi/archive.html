@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>アーカイブ | モンスター育成プロジェクト</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  .filter-bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  .filter-btn {
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid #F1C40F;
+    color: #d8c5ff;
+    cursor: pointer; border-radius: 4px;
+    font-family: inherit;
+  }
+  .filter-btn.active { background:#F1C40F; color:#0a0a1f; font-weight:bold; }
+  .pagination {
+    display:flex; justify-content:center; gap:8px; margin-top:24px;
+  }
+  .page-btn {
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(241,196,15,0.4);
+    color: #d8c5ff;
+    cursor: pointer; border-radius: 4px;
+    font-family: inherit;
+  }
+  .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>📜 アーカイブ</h1>
+  <p class="tagline">これまでの全提出記録</p>
+  <nav class="nav">
+    <a href="index.html">ホーム</a>
+    <a href="missions.html">課題一覧</a>
+    <a href="archive.html" class="active">アーカイブ</a>
+    <a href="how-to.html">使い方</a>
+  </nav>
+</header>
+
+<main class="container">
+
+  <div class="filter-bar" id="filter-bar">
+    <button class="filter-btn active" data-subject="all">すべて</button>
+    <button class="filter-btn" data-subject="AI基礎">🤖 AI基礎</button>
+    <button class="filter-btn" data-subject="英語">📖 英語</button>
+    <button class="filter-btn" data-subject="数学">📐 数学</button>
+    <button class="filter-btn" data-subject="勉強法">📚 勉強法</button>
+    <button class="filter-btn" data-subject="クリエイティブ">🎨 クリエイティブ</button>
+  </div>
+
+  <ul id="archive-list" class="recent-list"></ul>
+  <div id="pagination" class="pagination"></div>
+
+</main>
+
+<footer class="site-footer">© SHIFT AI ジュニア モンスター育成プロジェクト</footer>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/api.js"></script>
+<script>
+(async function () {
+  const PAGE_SIZE = 20;
+  let currentPage = 1;
+  let currentFilter = 'all';
+  let allItems = [];
+
+  const state = await window.MZ_API.fetchState();
+  allItems = state.all || state.recent || [];
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  function render() {
+    const filtered = currentFilter === 'all' ? allItems : allItems.filter(x => x.subject === currentFilter);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = 1;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const items = filtered.slice(start, start + PAGE_SIZE);
+
+    const listEl = document.getElementById('archive-list');
+    if (!items.length) {
+      listEl.innerHTML = '<li class="empty">該当する提出がありません</li>';
+    } else {
+      listEl.innerHTML = items.map(r => `
+        <li class="recent-item">
+          <div class="recent-meta">
+            <span class="recent-date">${r.date || ''}</span>
+            <span class="recent-subject">${r.subject || ''}</span>
+            <span>${'★'.repeat(r.difficulty || 1)}${'☆'.repeat(5 - (r.difficulty || 1))}</span>
+            <span class="recent-xp">+${r.xp || 15} XP</span>
+          </div>
+          <div class="recent-name">${escapeHtml(r.name || 'ゲスト')}</div>
+          <div class="recent-mission">${escapeHtml(r.missionTitle || '')}</div>
+          ${r.content ? `<div class="recent-comment" style="white-space:pre-wrap;">${escapeHtml(r.content)}</div>` : ''}
+        </li>
+      `).join('');
+    }
+
+    // ページャー
+    const pag = document.getElementById('pagination');
+    pag.innerHTML = `
+      <button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="window.__nav(-1)">← 前</button>
+      <span style="padding:6px 12px;color:#d8c5ff;">${currentPage} / ${totalPages}</span>
+      <button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.__nav(1)">次 →</button>
+    `;
+  }
+
+  window.__nav = (delta) => {
+    currentPage += delta;
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  document.getElementById('filter-bar').addEventListener('click', (e) => {
+    if (!e.target.classList.contains('filter-btn')) return;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    currentFilter = e.target.dataset.subject;
+    currentPage = 1;
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

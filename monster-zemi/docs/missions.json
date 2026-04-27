@@ -1,0 +1,44 @@
+{
+  "_meta": {
+    "naming": "m-{教科}{難易度2桁} 例: m-a01=AI基礎★1 / m-c05=クリエイティブ★5",
+    "subjectMap": {
+      "a": "AI基礎",
+      "e": "英語",
+      "m": "数学",
+      "s": "勉強法",
+      "c": "クリエイティブ"
+    },
+    "xpByStar": { "1": 15, "2": 25, "3": 40, "4": 60, "5": 80 }
+  },
+  "missions": [
+    { "id": "m-a01", "subject": "AI基礎", "difficulty": 1, "title": "AIを使うときのルールを自分の言葉で3つ書こう" },
+    { "id": "m-a02", "subject": "AI基礎", "difficulty": 2, "title": "ChatGPTで自己紹介文を作って、改善前後を比較しよう" },
+    { "id": "m-a03", "subject": "AI基礎", "difficulty": 3, "title": "友達に『ChatGPTって何？』と聞かれたら、どう説明する？文章にまとめよう" },
+    { "id": "m-a04", "subject": "AI基礎", "difficulty": 4, "title": "AIに著作権・個人情報のNG例を出させて、自分でツッコミを入れよう" },
+    { "id": "m-a05", "subject": "AI基礎", "difficulty": 5, "title": "AIの『得意・不得意』を5つずつ実例つきでまとめてプレゼン資料にしよう" },
+
+    { "id": "m-e01", "subject": "英語", "difficulty": 1, "title": "好きな映画/ゲームの英語タイトルをAIに分解させて意味を学ぼう" },
+    { "id": "m-e02", "subject": "英語", "difficulty": 2, "title": "AIに英文を3つ作らせ、自分の訳と比較しよう" },
+    { "id": "m-e03", "subject": "英語", "difficulty": 3, "title": "苦手な英文法をAIに3つの例文で説明させて、自分用ノートを作ろう" },
+    { "id": "m-e04", "subject": "英語", "difficulty": 4, "title": "AIと一緒に短い英語スピーチ原稿を作って音読してみよう" },
+    { "id": "m-e05", "subject": "英語", "difficulty": 5, "title": "好きなテーマで英語ブログ記事1本をAIと共同執筆しよう" },
+
+    { "id": "m-m01", "subject": "数学", "difficulty": 1, "title": "苦手な単元の問題をAIに解かせて、解説の正しさを確認しよう" },
+    { "id": "m-m02", "subject": "数学", "difficulty": 2, "title": "AIに『○○の公式の意味』を子供向けに説明させてみよう" },
+    { "id": "m-m03", "subject": "数学", "difficulty": 3, "title": "計算問題を5問作ってAIに解かせ、間違えたら指摘しよう" },
+    { "id": "m-m04", "subject": "数学", "difficulty": 4, "title": "AIに『なぜこの公式が成り立つか』を証明させて、自分の言葉でまとめよう" },
+    { "id": "m-m05", "subject": "数学", "difficulty": 5, "title": "実生活の問題（家計・スポーツ等）を数学モデル化してAIと議論しよう" },
+
+    { "id": "m-s01", "subject": "勉強法", "difficulty": 1, "title": "AIと一緒に1日の自分専用勉強スケジュールを作ろう" },
+    { "id": "m-s02", "subject": "勉強法", "difficulty": 2, "title": "AI×暗記カードで、苦手な範囲を5枚作ってみよう" },
+    { "id": "m-s03", "subject": "勉強法", "difficulty": 3, "title": "読んだ本/動画をAIにツッコミ役にして要約させよう" },
+    { "id": "m-s04", "subject": "勉強法", "difficulty": 4, "title": "AIに『次のテストまでの最適計画』を作らせ、実行ログをつけよう" },
+    { "id": "m-s05", "subject": "勉強法", "difficulty": 5, "title": "自分専用『弱点克服BOT』をAIに作らせて、3日間運用しよう" },
+
+    { "id": "m-c01", "subject": "クリエイティブ", "difficulty": 1, "title": "AIで自分のオリジナルキャラを1体作ろう（プロンプト＋画像）" },
+    { "id": "m-c02", "subject": "クリエイティブ", "difficulty": 2, "title": "4コマ漫画のシナリオをAIと一緒に作ってみよう" },
+    { "id": "m-c03", "subject": "クリエイティブ", "difficulty": 3, "title": "AIで絵本の表紙を作って、タイトルと一言メッセージを添えよう" },
+    { "id": "m-c04", "subject": "クリエイティブ", "difficulty": 4, "title": "AIで短い物語（5シーン）を絵と文章で作ろう" },
+    { "id": "m-c05", "subject": "クリエイティブ", "difficulty": 5, "title": "オリジナル絵本をAIで完成させてKindle出版用PDFまで作ろう" }
+  ]
+}
