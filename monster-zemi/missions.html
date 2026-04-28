@@ -7,166 +7,197 @@
 <link rel="stylesheet" href="assets/css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <style>
-  /* マトリクス表示 (PC) */
-  .matrix-wrap { overflow-x: auto; margin-bottom: 24px; }
-  .matrix-table {
-    border-collapse: separate; border-spacing: 6px;
-    width: 100%; min-width: 720px;
+  /* ===== ビンゴ式マトリクス ===== */
+  .bingo-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 16px;
+    padding-bottom: 4px;
   }
-  .matrix-table th, .matrix-table td {
-    padding: 8px;
+  .bingo {
+    display: grid;
+    grid-template-columns: 64px repeat(5, 1fr);
+    gap: 6px;
+    min-width: 100%;
   }
-  .matrix-table thead th {
-    color: #F1C40F; font-size: 14px; text-align: center;
-    background: rgba(241,196,15,0.08);
+  .bingo .corner { background: transparent; }
+  .bingo .col-h, .bingo .row-h {
+    color: #F1C40F;
+    font-size: 11px;
+    text-align: center;
+    padding: 6px 4px;
+    background: rgba(241,196,15,0.1);
     border-radius: 4px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    line-height: 1.2;
   }
-  .matrix-table tbody th {
-    text-align: left; color: #fff;
-    background: rgba(255,255,255,0.05);
-    border-left: 4px solid var(--subject-color, #F1C40F);
-    border-radius: 4px;
-    font-size: 13px;
-    width: 110px;
-    white-space: nowrap;
+  .bingo .col-h .lvl-xp { font-size: 9px; color: #aaa; margin-top: 2px; }
+  .bingo .row-h {
+    text-align: center;
+    border-left: 4px solid var(--row-color, #F1C40F);
+    background: rgba(255,255,255,0.06);
+    font-size: 11px;
+    color: #fff;
   }
-  .mission-cell {
+  .bingo .row-h .ic { font-size: 20px; margin-bottom: 2px; }
+  .bingo .cell {
+    aspect-ratio: 1;
     background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(241,196,15,0.25);
-    border-radius: 6px;
-    padding: 10px 8px;
+    border: 2px solid var(--row-color, rgba(241,196,15,0.3));
+    border-radius: 8px;
     cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 4px;
+    text-align: center;
     transition: all 0.15s;
-    height: 88px;
-    display: flex; flex-direction: column; justify-content: space-between;
-    text-align: left;
-    color: #ddd;
-    font-size: 12px;
-    line-height: 1.4;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
   }
-  .mission-cell:hover {
-    background: rgba(241,196,15,0.12);
+  .bingo .cell::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--row-color);
+    opacity: 0.08;
+    pointer-events: none;
+  }
+  .bingo .cell:hover, .bingo .cell:active {
+    transform: scale(1.05);
+    background: rgba(241,196,15,0.15);
     border-color: #F1C40F;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(241,196,15,0.2);
+    box-shadow: 0 0 12px rgba(241,196,15,0.4);
+    z-index: 1;
   }
-  .mission-cell .id { color: #888; font-size: 10px; margin-bottom: 4px; }
-  .mission-cell .title { flex: 1; font-size: 11.5px; overflow: hidden; }
-  .mission-cell .xp { color: #F1C40F; font-weight: bold; font-size: 11px; text-align: right; }
-
-  /* モバイル: タブ切替 */
-  .subject-tabs { display: none; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; }
-  .subject-tabs::-webkit-scrollbar { height: 4px; }
-  .subject-tab {
-    flex-shrink: 0;
-    padding: 8px 14px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(241,196,15,0.4);
-    color: #d8c5ff;
-    cursor: pointer; border-radius: 20px;
-    font-family: inherit; font-size: 13px;
-    white-space: nowrap;
+  .bingo .cell .id {
+    font-size: 11px;
+    color: #F1C40F;
+    font-weight: bold;
+    margin-bottom: 4px;
+    z-index: 1; position: relative;
   }
-  .subject-tab.active {
-    background: #F1C40F; color: #0a0a1f; font-weight: bold;
+  .bingo .cell .icon {
+    font-size: 24px;
+    line-height: 1;
+    z-index: 1; position: relative;
   }
-  .mobile-list { display: none; }
-  .mobile-list .mobile-card {
-    padding: 12px;
-    background: rgba(255,255,255,0.06);
-    border-left: 4px solid var(--subject-color, #F1C40F);
-    border-radius: 6px;
-    margin-bottom: 8px;
-    cursor: pointer;
-  }
-  .mobile-list .mobile-card .meta {
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: 11px; color: #aaa; margin-bottom: 6px;
-  }
-  .mobile-list .mobile-card .stars { color: #F1C40F; letter-spacing: 0.05em; }
-  .mobile-list .mobile-card .xp { color: #F1C40F; font-weight: bold; }
-  .mobile-list .mobile-card .title { font-size: 13px; color: #fff; line-height: 1.5; }
-
-  @media (max-width: 768px) {
-    .matrix-wrap { display: none; }
-    .subject-tabs { display: flex; }
-    .mobile-list { display: block; }
+  .bingo .cell .xp {
+    font-size: 9px;
+    color: #fff;
+    margin-top: 4px;
+    background: rgba(241,196,15,0.4);
+    padding: 1px 4px;
+    border-radius: 4px;
+    z-index: 1; position: relative;
   }
 
-  /* モーダル */
+  /* スマホ調整 */
+  @media (max-width: 480px) {
+    .bingo {
+      grid-template-columns: 48px repeat(5, 1fr);
+      gap: 4px;
+    }
+    .bingo .row-h { font-size: 9px; padding: 4px 2px; }
+    .bingo .row-h .ic { font-size: 16px; }
+    .bingo .col-h { font-size: 10px; padding: 4px; }
+    .bingo .col-h .lvl-xp { font-size: 8px; }
+    .bingo .cell { padding: 2px; border-width: 1.5px; border-radius: 6px; }
+    .bingo .cell .id { font-size: 9px; }
+    .bingo .cell .icon { font-size: 18px; }
+    .bingo .cell .xp { font-size: 8px; padding: 0 3px; }
+  }
+
+  /* ===== モーダル ===== */
   .modal-backdrop {
     display: none;
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.75);
-    z-index: 100;
+    background: rgba(0,0,0,0.78);
+    z-index: 200;
     align-items: center; justify-content: center;
     padding: 16px;
   }
   .modal-backdrop.show { display: flex; }
-  .modal {
+  .modal-box {
     background: linear-gradient(135deg, #1a0d2e, #2d1b4e);
     border: 2px solid #F1C40F;
     border-radius: 12px;
     padding: 24px;
     max-width: 480px; width: 100%;
     box-shadow: 0 0 30px rgba(241,196,15,0.4);
+    position: relative;
+    max-height: 90vh; overflow-y: auto;
   }
-  .modal .close {
-    float: right; background: none; border: none; color: #aaa;
-    font-size: 24px; cursor: pointer; padding: 0; line-height: 1;
+  .modal-box .close {
+    position: absolute; top: 8px; right: 12px;
+    background: none; border: none; color: #aaa;
+    font-size: 28px; cursor: pointer; padding: 0; line-height: 1;
   }
-  .modal h3 { color: #F1C40F; font-size: 18px; margin-bottom: 8px; }
-  .modal .modal-meta {
+  .modal-box h3 { color: #F1C40F; font-size: 18px; margin-bottom: 8px; }
+  .modal-meta {
     display: flex; gap: 12px; margin-bottom: 16px;
     font-size: 12px; color: #aaa;
+    align-items: center;
   }
-  .modal .modal-meta .stars { color: #F1C40F; letter-spacing: 0.05em; }
-  .modal .modal-meta .xp { color: #F1C40F; font-weight: bold; }
-  .modal .modal-id {
+  .modal-meta .stars { color: #F1C40F; letter-spacing: 0.05em; font-size: 14px; }
+  .modal-meta .xp {
+    color: #fff; background: rgba(241,196,15,0.4);
+    padding: 2px 8px; border-radius: 4px;
+    font-weight: bold; font-size: 12px;
+  }
+  .modal-title-text { font-size: 15px; line-height: 1.6; color: #fff; margin-bottom: 16px; }
+  .modal-id-info {
     background: rgba(0,0,0,0.4);
-    border: 1px dashed rgba(241,196,15,0.5);
     border-radius: 4px;
-    padding: 12px;
-    margin: 12px 0;
-    font-size: 13px;
-    color: #d8c5ff;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+    font-size: 11px; color: #aaa;
   }
-  .modal .modal-id strong { color: #F1C40F; font-size: 16px; }
-  .modal .copy-btn {
-    background: rgba(241,196,15,0.15);
-    color: #F1C40F;
-    border: 1px solid #F1C40F;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
+  .modal-id-info strong { color: #F1C40F; }
+  .submit-btn {
+    display: block; width: 100%;
+    background: linear-gradient(135deg, #F1C40F, #E67E22);
+    color: #0a0a1f;
+    text-align: center;
+    text-decoration: none;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 8px;
+    border: 2px solid #F1C40F;
+    box-shadow: 0 4px 12px rgba(241,196,15,0.4);
+    transition: transform 0.15s;
     font-family: inherit;
-    font-size: 12px;
-    margin-left: 8px;
+    cursor: pointer;
   }
-  .modal .copy-btn:hover { background: rgba(241,196,15,0.25); }
-  .modal .modal-actions {
-    margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap;
+  .submit-btn:hover { transform: translateY(-2px); }
+  .submit-btn[disabled], .submit-btn.disabled {
+    opacity: 0.5; cursor: not-allowed;
+    box-shadow: none;
   }
-  .modal .btn-primary { padding: 10px 20px; font-size: 14px; }
-  .modal-help { color: #aaa; font-size: 12px; margin-top: 12px; line-height: 1.6; }
 
-  /* 上部CTA */
-  .top-cta {
-    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
-    padding: 16px;
-    background: rgba(241,196,15,0.06);
+  .help-banner {
+    padding: 12px;
+    background: rgba(241,196,15,0.08);
     border: 1px solid rgba(241,196,15,0.3);
     border-radius: 8px;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #d8c5ff;
+    line-height: 1.5;
   }
-  .top-cta .help { flex: 1; font-size: 13px; color: #d8c5ff; min-width: 200px; }
 </style>
 </head>
 <body>
 
+<!-- 右下固定ミニアバター -->
+<div id="mini-monster" class="mini-monster mini-monster-br" onclick="location.href='index.html'" title="ホームに戻る">
+  <img id="mini-monster-img" src="" alt="">
+  <div id="mini-monster-emoji" class="mini-emoji">🥚</div>
+  <div class="mini-lv" id="mini-lv">Lv.1</div>
+</div>
+
 <header class="site-header">
-  <h1>⚔️ 課題一覧</h1>
-  <p class="tagline">5教科×5難易度。マスをタップで詳細を見る</p>
+  <h1>⚔️ 課題ビンゴ</h1>
+  <p class="tagline">5教科×5レベル。マスをタップで挑戦</p>
   <nav class="nav">
     <a href="index.html">ホーム</a>
     <a href="missions.html" class="active">課題一覧</a>
@@ -177,62 +208,39 @@
 
 <main class="container">
 
-  <div class="top-cta">
-    <div class="help">
-      💡 マスをタップ → 課題ID（例: m-a01）をコピー → 提出フォームに貼り付けて提出
-    </div>
-    <a id="submit-btn" href="#" target="_blank" class="btn-primary">📝 提出フォームを開く</a>
+  <div class="help-banner">
+    💡 マスをタップ → 詳細を見る → 「📝 提出する」で課題タイトルが自動入力されたフォームが開きます
   </div>
 
-  <!-- PC: マトリクス表 -->
-  <div class="matrix-wrap">
-    <table class="matrix-table">
-      <thead>
-        <tr>
-          <th></th>
-          <th>★1<br><small style="color:#aaa;font-size:10px">+15 XP</small></th>
-          <th>★2<br><small style="color:#aaa;font-size:10px">+25 XP</small></th>
-          <th>★3<br><small style="color:#aaa;font-size:10px">+40 XP</small></th>
-          <th>★4<br><small style="color:#aaa;font-size:10px">+60 XP</small></th>
-          <th>★5<br><small style="color:#aaa;font-size:10px">+80 XP</small></th>
-        </tr>
-      </thead>
-      <tbody id="matrix-body"></tbody>
-    </table>
+  <!-- ビンゴマトリクス -->
+  <div class="bingo-wrap">
+    <div class="bingo" id="bingo"></div>
   </div>
-
-  <!-- モバイル: タブ + リスト -->
-  <div class="subject-tabs" id="subject-tabs"></div>
-  <div class="mobile-list" id="mobile-list"></div>
 
 </main>
 
 <!-- 詳細モーダル -->
 <div class="modal-backdrop" id="modal-backdrop">
-  <div class="modal" id="modal">
+  <div class="modal-box">
     <button class="close" onclick="closeModal()">×</button>
     <h3 id="m-subject"></h3>
     <div class="modal-meta">
       <span class="stars" id="m-stars"></span>
       <span class="xp" id="m-xp"></span>
     </div>
-    <div style="font-size:14px; line-height:1.6; color:#fff;" id="m-title"></div>
-    <div class="modal-id">
-      <div style="font-size:11px; color:#aaa; margin-bottom:4px;">この課題ID（提出時にコピペ）</div>
-      <strong id="m-id"></strong>
-      <button class="copy-btn" onclick="copyId()">📋 コピー</button>
-      <span id="copy-status" style="color:#81C784; font-size:11px; margin-left:8px;"></span>
+    <div class="modal-title-text" id="m-title"></div>
+    <div class="modal-id-info">
+      課題ID: <strong id="m-id"></strong>　|　承認時 <strong id="m-xp2"></strong> 加算
     </div>
-    <div class="modal-actions">
-      <a id="m-submit" href="#" target="_blank" class="btn-primary">📝 提出フォームを開く</a>
-    </div>
-    <p class="modal-help">フォームの「挑戦した課題」欄に、上のIDをそのまま貼り付けてください。</p>
+    <a id="m-submit" href="#" target="_blank" class="submit-btn">📝 提出する（タイトル自動入力）</a>
   </div>
 </div>
 
 <footer class="site-footer">© SHIFT AI ジュニア モンスター育成プロジェクト</footer>
 
 <script src="assets/js/config.js"></script>
+<script src="assets/js/monster.js"></script>
+<script src="assets/js/api.js"></script>
 <script>
 const SUBJECTS = [
   { key: 'AI基礎',         icon: '🤖', color: '#4FC3F7' },
@@ -244,89 +252,100 @@ const SUBJECTS = [
 const XP_BY_STAR = { 1:15, 2:25, 3:40, 4:60, 5:80 };
 let MISSIONS = [];
 let CURRENT_MISSION = null;
+let FORM_INFO = null; // { formUrl, entries: { mission, nickname, ... } }
 
 (async function () {
-  const cfg = window.MZ_CONFIG;
-  const formReady = cfg.FORM_URL && !cfg.FORM_URL.includes('PUT_YOUR');
-
-  // 提出ボタン制御
-  const submitBtn = document.getElementById('submit-btn');
-  if (formReady) {
-    submitBtn.href = cfg.FORM_URL;
-  } else {
-    submitBtn.style.opacity = '0.5';
-    submitBtn.title = '提出フォーム未設定';
-    submitBtn.removeAttribute('href');
-  }
-
   // 課題JSON読み込み
   try {
     const res = await fetch('docs/missions.json');
     const json = await res.json();
     MISSIONS = json.missions || [];
   } catch (err) {
-    document.querySelector('.matrix-wrap').innerHTML = '<p style="color:#aaa;">課題リストの読み込みに失敗しました</p>';
+    document.getElementById('bingo').innerHTML = '<p style="color:#aaa;">課題リストの読み込みに失敗しました</p>';
     return;
   }
+  renderBingo();
 
-  renderMatrix();
-  renderMobile();
+  // 右下ミニアバター描画 + フォーム情報取得（並列）
+  await Promise.allSettled([
+    loadMonster(),
+    loadFormInfo(),
+  ]);
 })();
 
-function renderMatrix() {
-  const tbody = document.getElementById('matrix-body');
-  tbody.innerHTML = SUBJECTS.map(s => {
-    const cells = [1,2,3,4,5].map(diff => {
-      const m = MISSIONS.find(x => x.subject === s.key && x.difficulty === diff);
-      if (!m) return '<td></td>';
-      const shortTitle = m.title.length > 32 ? m.title.substring(0, 30) + '…' : m.title;
-      return `<td>
-        <div class="mission-cell" onclick="openModal('${m.id}')">
-          <div class="id">${m.id}</div>
-          <div class="title">${escapeHtml(shortTitle)}</div>
-          <div class="xp">+${XP_BY_STAR[diff]} XP</div>
-        </div>
-      </td>`;
-    }).join('');
-    return `<tr>
-      <th style="--subject-color:${s.color}">${s.icon} ${s.key}</th>
-      ${cells}
-    </tr>`;
-  }).join('');
+async function loadMonster() {
+  try {
+    const state = await window.MZ_API.fetchState();
+    const stats = state.stats || { ai:0, eng:0, math:0, study:0, creative:0 };
+    const m = window.MZ_MONSTER.determineMonster(stats);
+    const img = document.getElementById('mini-monster-img');
+    const emoji = document.getElementById('mini-monster-emoji');
+    img.src = m.imagePath;
+    img.alt = m.monsterName;
+    let triedSvg = false;
+    img.onerror = () => {
+      if (!triedSvg && img.src.endsWith('.png')) { triedSvg = true; img.src = m.imagePath.replace('.png','.svg'); return; }
+      img.style.display = 'none';
+      if (emoji) emoji.style.display = 'block';
+    };
+    document.getElementById('mini-lv').textContent = 'Lv.' + m.lv;
+  } catch (e) {}
 }
 
-function renderMobile() {
-  // タブ生成
-  const tabs = document.getElementById('subject-tabs');
-  tabs.innerHTML = SUBJECTS.map((s, i) => `
-    <button class="subject-tab ${i === 0 ? 'active' : ''}" data-subject="${s.key}">
-      ${s.icon} ${s.key}
-    </button>
-  `).join('');
-  tabs.addEventListener('click', (e) => {
-    if (!e.target.classList.contains('subject-tab')) return;
-    document.querySelectorAll('.subject-tab').forEach(b => b.classList.remove('active'));
-    e.target.classList.add('active');
-    renderMobileList(e.target.dataset.subject);
+async function loadFormInfo() {
+  const cfg = window.MZ_CONFIG;
+  if (!cfg.GAS_URL || cfg.GAS_URL.includes('PUT_YOUR')) return;
+  try {
+    const res = await fetch(cfg.GAS_URL + '?action=formInfo');
+    const data = await res.json();
+    if (data.ok && data.formUrl && data.entries && data.entries.mission) {
+      FORM_INFO = data;
+      // GASのformUrlを優先（config.jsより新しい）
+      window.MZ_CONFIG.FORM_URL = data.formUrl;
+    }
+  } catch (e) {}
+}
+
+function buildPrefilledUrl(mission) {
+  const cfg = window.MZ_CONFIG;
+  const formUrl = (FORM_INFO && FORM_INFO.formUrl) || cfg.FORM_URL;
+  if (!formUrl || formUrl.includes('PUT_YOUR')) return null;
+  if (FORM_INFO && FORM_INFO.entries && FORM_INFO.entries.mission) {
+    const display = `${mission.title} [${mission.id}]`;
+    const params = new URLSearchParams();
+    params.set('usp', 'pp_url');
+    params.set(FORM_INFO.entries.mission, display);
+    const sep = formUrl.includes('?') ? '&' : '?';
+    return formUrl + sep + params.toString();
+  }
+  return formUrl;
+}
+
+function renderBingo() {
+  const bingo = document.getElementById('bingo');
+  let html = '<div class="corner"></div>';
+  // 上ヘッダ ★1〜★5
+  for (let lv = 1; lv <= 5; lv++) {
+    html += `<div class="col-h">★${lv}<span class="lvl-xp">+${XP_BY_STAR[lv]}</span></div>`;
+  }
+  // 各教科行
+  SUBJECTS.forEach(s => {
+    html += `<div class="row-h" style="--row-color:${s.color}"><span class="ic">${s.icon}</span>${s.key}</div>`;
+    for (let lv = 1; lv <= 5; lv++) {
+      const m = MISSIONS.find(x => x.subject === s.key && x.difficulty === lv);
+      if (!m) {
+        html += '<div class="cell" style="opacity:0.3" data-empty="1"></div>';
+      } else {
+        html += `
+          <div class="cell" style="--row-color:${s.color}" onclick="openModal('${m.id}')">
+            <div class="id">${m.id}</div>
+            <div class="icon">${s.icon}</div>
+            <div class="xp">+${XP_BY_STAR[lv]}</div>
+          </div>`;
+      }
+    }
   });
-  renderMobileList(SUBJECTS[0].key);
-}
-
-function renderMobileList(subjectKey) {
-  const subject = SUBJECTS.find(s => s.key === subjectKey);
-  const list = MISSIONS
-    .filter(m => m.subject === subjectKey)
-    .sort((a, b) => a.difficulty - b.difficulty);
-  const container = document.getElementById('mobile-list');
-  container.innerHTML = list.map(m => `
-    <div class="mobile-card" style="--subject-color:${subject.color}" onclick="openModal('${m.id}')">
-      <div class="meta">
-        <span><span class="stars">${'★'.repeat(m.difficulty)}${'☆'.repeat(5-m.difficulty)}</span> · ${m.id}</span>
-        <span class="xp">+${XP_BY_STAR[m.difficulty]} XP</span>
-      </div>
-      <div class="title">${escapeHtml(m.title)}</div>
-    </div>
-  `).join('');
+  bingo.innerHTML = html;
 }
 
 function openModal(id) {
@@ -337,18 +356,20 @@ function openModal(id) {
   document.getElementById('m-subject').textContent = `${subject.icon} ${m.subject}`;
   document.getElementById('m-stars').textContent = '★'.repeat(m.difficulty) + '☆'.repeat(5 - m.difficulty);
   document.getElementById('m-xp').textContent = `+${XP_BY_STAR[m.difficulty]} XP`;
+  document.getElementById('m-xp2').textContent = `+${XP_BY_STAR[m.difficulty]} XP`;
   document.getElementById('m-title').textContent = m.title;
   document.getElementById('m-id').textContent = m.id;
-  document.getElementById('copy-status').textContent = '';
 
-  const cfg = window.MZ_CONFIG;
-  const formReady = cfg.FORM_URL && !cfg.FORM_URL.includes('PUT_YOUR');
-  const submitLink = document.getElementById('m-submit');
-  if (formReady) {
-    submitLink.href = cfg.FORM_URL;
+  const submitBtn = document.getElementById('m-submit');
+  const url = buildPrefilledUrl(m);
+  if (url) {
+    submitBtn.href = url;
+    submitBtn.classList.remove('disabled');
+    submitBtn.textContent = '📝 提出する（タイトル自動入力）';
   } else {
-    submitLink.style.opacity = '0.5';
-    submitLink.removeAttribute('href');
+    submitBtn.removeAttribute('href');
+    submitBtn.classList.add('disabled');
+    submitBtn.textContent = '📝 提出フォーム準備中...';
   }
   document.getElementById('modal-backdrop').classList.add('show');
 }
@@ -357,26 +378,12 @@ function closeModal() {
   document.getElementById('modal-backdrop').classList.remove('show');
 }
 
-function copyId() {
-  if (!CURRENT_MISSION) return;
-  navigator.clipboard.writeText(CURRENT_MISSION.id).then(() => {
-    document.getElementById('copy-status').textContent = '✓ コピーしました';
-    setTimeout(() => {
-      document.getElementById('copy-status').textContent = '';
-    }, 2000);
-  });
-}
-
 document.getElementById('modal-backdrop').addEventListener('click', (e) => {
   if (e.target.id === 'modal-backdrop') closeModal();
 });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal();
 });
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-}
 </script>
 </body>
 </html>

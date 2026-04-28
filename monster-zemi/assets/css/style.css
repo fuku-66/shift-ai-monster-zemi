@@ -75,12 +75,11 @@ main, header, footer { position: relative; z-index: 1; }
   max-width: 1100px; margin: 0 auto; padding: 16px;
 }
 
-/* ===== ミニアバター（右上固定） ===== */
+/* ===== ミニアバター（右下固定・タイトル被り防止） ===== */
 .mini-monster {
   position: fixed;
-  top: 12px; right: 12px;
   width: 64px; height: 64px;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.6);
   border: 2px solid #F1C40F;
   border-radius: 50%;
   z-index: 50;
@@ -89,6 +88,13 @@ main, header, footer { position: relative; z-index: 1; }
   transition: all 0.2s;
   display: flex; align-items: center; justify-content: center;
   overflow: visible;
+}
+.mini-monster-br {
+  bottom: 16px; right: 16px;
+}
+/* 後方互換用: クラス無し時は右下扱い */
+.mini-monster:not(.mini-monster-br) {
+  bottom: 16px; right: 16px;
 }
 .mini-monster:hover, .mini-monster:active {
   transform: scale(1.08);
@@ -358,9 +364,9 @@ main, header, footer { position: relative; z-index: 1; }
   .site-header .tagline { font-size: 14px; }
   .container { padding: 24px 16px; }
   .mini-monster {
-    top: 16px; right: 16px;
     width: 80px; height: 80px;
   }
+  .mini-monster-br { bottom: 24px; right: 24px; }
   .mini-monster img { width: 72px; height: 72px; }
   .status-name { font-size: 18px; }
   .axis-list { font-size: 13px; }
