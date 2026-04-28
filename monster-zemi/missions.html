@@ -41,18 +41,19 @@
   }
   .bingo .row-h .ic { font-size: 20px; margin-bottom: 2px; }
   .bingo .cell {
-    aspect-ratio: 1;
+    min-height: 130px;
     background: rgba(255,255,255,0.04);
     border: 2px solid var(--row-color, rgba(241,196,15,0.3));
     border-radius: 8px;
     cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 4px;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    padding: 10px 8px;
     text-align: center;
     transition: all 0.15s;
     color: #fff;
     position: relative;
     overflow: hidden;
+    gap: 6px;
   }
   .bingo .cell::before {
     content: '';
@@ -62,48 +63,62 @@
     pointer-events: none;
   }
   .bingo .cell:hover, .bingo .cell:active {
-    transform: scale(1.05);
-    background: rgba(241,196,15,0.15);
+    transform: scale(1.04);
+    background: rgba(241,196,15,0.12);
     border-color: #F1C40F;
-    box-shadow: 0 0 12px rgba(241,196,15,0.4);
+    box-shadow: 0 0 14px rgba(241,196,15,0.4);
     z-index: 1;
   }
-  .bingo .cell .id {
-    font-size: 11px;
-    color: #F1C40F;
-    font-weight: bold;
-    margin-bottom: 4px;
-    z-index: 1; position: relative;
-  }
   .bingo .cell .icon {
-    font-size: 24px;
+    font-size: 22px;
     line-height: 1;
     z-index: 1; position: relative;
+    flex-shrink: 0;
+  }
+  .bingo .cell .ttl {
+    font-size: 11.5px;
+    line-height: 1.35;
+    color: #fff;
+    z-index: 1; position: relative;
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
   }
   .bingo .cell .xp {
-    font-size: 9px;
+    font-size: 10px;
     color: #fff;
-    margin-top: 4px;
-    background: rgba(241,196,15,0.4);
-    padding: 1px 4px;
+    background: rgba(241,196,15,0.5);
+    padding: 2px 8px;
     border-radius: 4px;
     z-index: 1; position: relative;
+    flex-shrink: 0;
+    font-weight: bold;
   }
 
-  /* スマホ調整 */
+  /* タブレット〜スマホ */
+  @media (max-width: 768px) {
+    .bingo .cell { min-height: 100px; padding: 6px 4px; gap: 3px; }
+    .bingo .cell .icon { font-size: 18px; }
+    .bingo .cell .ttl { font-size: 10px; -webkit-line-clamp: 3; }
+    .bingo .cell .xp { font-size: 9px; padding: 1px 5px; }
+  }
+  /* スマホ */
   @media (max-width: 480px) {
     .bingo {
-      grid-template-columns: 48px repeat(5, 1fr);
+      grid-template-columns: 44px repeat(5, 1fr);
       gap: 4px;
     }
     .bingo .row-h { font-size: 9px; padding: 4px 2px; }
     .bingo .row-h .ic { font-size: 16px; }
     .bingo .col-h { font-size: 10px; padding: 4px; }
     .bingo .col-h .lvl-xp { font-size: 8px; }
-    .bingo .cell { padding: 2px; border-width: 1.5px; border-radius: 6px; }
-    .bingo .cell .id { font-size: 9px; }
-    .bingo .cell .icon { font-size: 18px; }
-    .bingo .cell .xp { font-size: 8px; padding: 0 3px; }
+    .bingo .cell { min-height: 86px; padding: 4px 3px; border-width: 1.5px; border-radius: 6px; }
+    .bingo .cell .icon { font-size: 14px; }
+    .bingo .cell .ttl { font-size: 9px; line-height: 1.3; -webkit-line-clamp: 4; }
+    .bingo .cell .xp { font-size: 8px; padding: 0 4px; }
   }
 
   /* ===== モーダル ===== */
@@ -337,9 +352,9 @@ function renderBingo() {
         html += '<div class="cell" style="opacity:0.3" data-empty="1"></div>';
       } else {
         html += `
-          <div class="cell" style="--row-color:${s.color}" onclick="openModal('${m.id}')">
-            <div class="id">${m.id}</div>
+          <div class="cell" style="--row-color:${s.color}" onclick="openModal('${m.id}')" title="${escapeAttr(m.title)}">
             <div class="icon">${s.icon}</div>
+            <div class="ttl">${escapeHtml(m.title)}</div>
             <div class="xp">+${XP_BY_STAR[lv]}</div>
           </div>`;
       }
@@ -384,6 +399,11 @@ document.getElementById('modal-backdrop').addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal();
 });
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
 </script>
 </body>
 </html>
