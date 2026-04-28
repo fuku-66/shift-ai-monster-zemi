@@ -75,6 +75,20 @@ main, header, footer { position: relative; z-index: 1; }
   max-width: 1100px; margin: 0 auto; padding: 16px;
 }
 
+/* ===== ふわふわアニメーション ===== */
+@keyframes float-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%      { transform: translateY(-6px) rotate(1deg); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(241,196,15,0.5); }
+  50%      { box-shadow: 0 0 22px rgba(241,196,15,0.8); }
+}
+@keyframes shadow-bob {
+  0%, 100% { transform: translateX(-50%) scale(1);   opacity: 0.4; }
+  50%      { transform: translateX(-50%) scale(0.7); opacity: 0.2; }
+}
+
 /* ===== ミニアバター（右下固定・タイトル被り防止） ===== */
 .mini-monster {
   position: fixed;
@@ -85,9 +99,26 @@ main, header, footer { position: relative; z-index: 1; }
   z-index: 50;
   cursor: pointer;
   box-shadow: 0 0 12px rgba(241,196,15,0.5);
-  transition: all 0.2s;
+  transition: transform 0.2s;
   display: flex; align-items: center; justify-content: center;
   overflow: visible;
+  animation: pulse-glow 2.5s ease-in-out infinite;
+}
+.mini-monster::after {
+  /* 足元の影（ふわふわに同期して伸び縮み） */
+  content: '';
+  position: absolute;
+  bottom: -10px; left: 50%;
+  transform: translateX(-50%);
+  width: 56px; height: 8px;
+  background: radial-gradient(ellipse, rgba(0,0,0,0.5), transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+  animation: shadow-bob 2.4s ease-in-out infinite;
+}
+.mini-monster img,
+.mini-monster .mini-emoji {
+  animation: float-bob 2.4s ease-in-out infinite;
 }
 .mini-monster-br {
   bottom: 16px; right: 16px;
@@ -252,6 +283,7 @@ main, header, footer { position: relative; z-index: 1; }
   width: 100%; height: 100%;
   object-fit: contain;
   image-rendering: pixelated;
+  animation: float-bob 2.6s ease-in-out infinite;
 }
 .monster-placeholder {
   font-size: 80px;
