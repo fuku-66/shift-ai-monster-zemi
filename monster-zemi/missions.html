@@ -7,194 +7,107 @@
 <link rel="stylesheet" href="assets/css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <style>
-  /* ===== ビンゴ式マトリクス ===== */
-  .bingo-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin-bottom: 16px;
-    padding-bottom: 4px;
+  /* フィルタバー */
+  .filter-bar {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-bottom: 20px;
   }
-  .bingo {
-    display: grid;
-    grid-template-columns: 64px repeat(5, 1fr);
-    gap: 6px;
-    min-width: 100%;
-  }
-  .bingo .corner { background: transparent; }
-  .bingo .col-h, .bingo .row-h {
-    color: #F1C40F;
-    font-size: 11px;
-    text-align: center;
-    padding: 6px 4px;
-    background: rgba(241,196,15,0.1);
-    border-radius: 4px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    line-height: 1.2;
-  }
-  .bingo .col-h .lvl-xp { font-size: 9px; color: #aaa; margin-top: 2px; }
-  .bingo .row-h {
-    text-align: center;
-    border-left: 4px solid var(--row-color, #F1C40F);
+  .filter-btn {
+    padding: 6px 14px;
     background: rgba(255,255,255,0.06);
-    font-size: 11px;
-    color: #fff;
+    border: 1px solid rgba(241,196,15,0.4);
+    color: #d8c5ff;
+    cursor: pointer; border-radius: 20px;
+    font-family: inherit; font-size: 12px;
   }
-  .bingo .row-h .ic { font-size: 20px; margin-bottom: 2px; }
-  .bingo .cell {
-    min-height: 130px;
-    background: rgba(255,255,255,0.04);
-    border: 2px solid var(--row-color, rgba(241,196,15,0.3));
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-    padding: 10px 8px;
-    text-align: center;
+  .filter-btn.active { background: #F1C40F; color: #0a0a1f; font-weight: bold; }
+
+  /* 教科ブロック */
+  .subject-block { margin-bottom: 28px; }
+  .subject-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.05);
+    border-left: 5px solid var(--subject-color, #F1C40F);
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 14px;
+  }
+  .subject-header h2 {
+    color: #fff; font-size: 18px; margin: 0;
+  }
+  .subject-header .icon { font-size: 22px; }
+  .subject-header .count {
+    margin-left: auto;
+    color: #aaa; font-size: 11px;
+  }
+
+  /* カードグリッド */
+  .mission-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .mission-card {
+    background: linear-gradient(180deg, rgba(125, 60, 152, 0.15) 0%, rgba(42, 26, 77, 0.5) 100%);
+    border: 1px solid var(--subject-color, rgba(241,196,15,0.3));
+    border-radius: 10px;
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 8px;
     transition: all 0.15s;
-    color: #fff;
-    position: relative;
-    overflow: hidden;
-    gap: 6px;
   }
-  .bingo .cell::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: var(--row-color);
-    opacity: 0.08;
-    pointer-events: none;
-  }
-  .bingo .cell:hover, .bingo .cell:active {
-    transform: scale(1.04);
-    background: rgba(241,196,15,0.12);
+  .mission-card:hover {
+    transform: translateY(-2px);
     border-color: #F1C40F;
-    box-shadow: 0 0 14px rgba(241,196,15,0.4);
-    z-index: 1;
+    box-shadow: 0 6px 16px rgba(241,196,15,0.2);
   }
-  .bingo .cell .icon {
-    font-size: 22px;
-    line-height: 1;
-    z-index: 1; position: relative;
-    flex-shrink: 0;
+  .mission-card .head {
+    display: flex; justify-content: space-between; align-items: center;
   }
-  .bingo .cell .ttl {
-    font-size: 11.5px;
-    line-height: 1.35;
+  .mission-card .stars {
+    color: #F1C40F; font-size: 13px; letter-spacing: 1px;
+  }
+  .mission-card .xp-badge {
     color: #fff;
-    z-index: 1; position: relative;
-    flex: 1;
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    word-break: break-word;
-  }
-  .bingo .cell .xp {
-    font-size: 10px;
-    color: #fff;
-    background: rgba(241,196,15,0.5);
+    background: rgba(241,196,15,0.4);
     padding: 2px 8px;
     border-radius: 4px;
-    z-index: 1; position: relative;
-    flex-shrink: 0;
+    font-size: 11px; font-weight: bold;
+  }
+  .mission-card .title {
+    color: #fff;
+    font-size: 14.5px;
     font-weight: bold;
+    line-height: 1.5;
+    flex: 1;
   }
-
-  /* タブレット */
-  @media (max-width: 768px) {
-    .bingo .cell { min-height: 90px; padding: 6px 4px; gap: 4px; }
-    .bingo .cell .icon { font-size: 26px; }
-    .bingo .cell .ttl { display: none; }
-    .bingo .cell .xp { font-size: 10px; padding: 2px 6px; }
+  .mission-card .foot {
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.1);
   }
-  /* スマホ: アイコン中心のシンプル表示（ビンゴ感優先） */
-  @media (max-width: 480px) {
-    .bingo {
-      grid-template-columns: 44px repeat(5, 1fr);
-      gap: 4px;
-    }
-    .bingo .row-h { font-size: 9px; padding: 4px 2px; }
-    .bingo .row-h .ic { font-size: 16px; }
-    .bingo .col-h { font-size: 10px; padding: 4px; }
-    .bingo .col-h .lvl-xp { font-size: 8px; }
-    .bingo .cell {
-      min-height: 64px; aspect-ratio: 1;
-      padding: 4px; border-width: 1.5px; border-radius: 6px;
-      gap: 4px;
-    }
-    .bingo .cell .icon { font-size: 24px; }
-    .bingo .cell .ttl { display: none; }
-    .bingo .cell .xp { font-size: 9px; padding: 1px 4px; }
-  }
-
-  /* ===== モーダル ===== */
-  .modal-backdrop {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.78);
-    z-index: 200;
-    align-items: center; justify-content: center;
-    padding: 16px;
-  }
-  .modal-backdrop.show { display: flex; }
-  .modal-box {
-    background: linear-gradient(135deg, #1a0d2e, #2d1b4e);
-    border: 2px solid #F1C40F;
-    border-radius: 12px;
-    padding: 24px;
-    max-width: 480px; width: 100%;
-    box-shadow: 0 0 30px rgba(241,196,15,0.4);
-    position: relative;
-    max-height: 90vh; overflow-y: auto;
-  }
-  .modal-box .close {
-    position: absolute; top: 8px; right: 12px;
-    background: none; border: none; color: #aaa;
-    font-size: 28px; cursor: pointer; padding: 0; line-height: 1;
-  }
-  .modal-box h3 { color: #F1C40F; font-size: 18px; margin-bottom: 8px; }
-  .modal-meta {
-    display: flex; gap: 12px; margin-bottom: 16px;
-    font-size: 12px; color: #aaa;
-    align-items: center;
-  }
-  .modal-meta .stars { color: #F1C40F; letter-spacing: 0.05em; font-size: 14px; }
-  .modal-meta .xp {
-    color: #fff; background: rgba(241,196,15,0.4);
-    padding: 2px 8px; border-radius: 4px;
-    font-weight: bold; font-size: 12px;
-  }
-  .modal-title-text { font-size: 15px; line-height: 1.6; color: #fff; margin-bottom: 16px; }
-  .modal-id-info {
-    background: rgba(0,0,0,0.4);
-    border-radius: 4px;
-    padding: 8px 12px;
-    margin-bottom: 16px;
-    font-size: 11px; color: #aaa;
-  }
-  .modal-id-info strong { color: #F1C40F; }
-  .submit-btn {
-    display: block; width: 100%;
+  .mission-card .submit-btn {
+    display: block;
     background: linear-gradient(135deg, #F1C40F, #E67E22);
     color: #0a0a1f;
     text-align: center;
     text-decoration: none;
-    padding: 14px;
-    font-size: 15px;
+    padding: 8px 14px;
+    font-size: 12px;
     font-weight: bold;
-    border-radius: 8px;
-    border: 2px solid #F1C40F;
-    box-shadow: 0 4px 12px rgba(241,196,15,0.4);
+    border-radius: 6px;
+    cursor: pointer;
     transition: transform 0.15s;
     font-family: inherit;
-    cursor: pointer;
+    border: none;
+    width: 100%;
   }
-  .submit-btn:hover { transform: translateY(-2px); }
-  .submit-btn[disabled], .submit-btn.disabled {
+  .mission-card .submit-btn:hover { transform: translateY(-1px); }
+  .mission-card .submit-btn.disabled {
     opacity: 0.5; cursor: not-allowed;
-    box-shadow: none;
   }
 
   .help-banner {
-    padding: 12px;
+    padding: 12px 14px;
     background: rgba(241,196,15,0.08);
     border: 1px solid rgba(241,196,15,0.3);
     border-radius: 8px;
@@ -202,6 +115,11 @@
     font-size: 13px;
     color: #d8c5ff;
     line-height: 1.5;
+  }
+
+  @media (max-width: 480px) {
+    .mission-grid { grid-template-columns: 1fr; gap: 10px; }
+    .subject-header h2 { font-size: 16px; }
   }
 </style>
 </head>
@@ -215,8 +133,8 @@
 </div>
 
 <header class="site-header">
-  <h1>⚔️ 課題ビンゴ</h1>
-  <p class="tagline">5教科×5レベル。マスをタップで挑戦</p>
+  <h1>⚔️ 課題一覧</h1>
+  <p class="tagline">5教科×5レベル。挑戦したい課題を選ぼう</p>
   <nav class="nav">
     <a href="index.html">ホーム</a>
     <a href="missions.html" class="active">課題一覧</a>
@@ -228,32 +146,21 @@
 <main class="container">
 
   <div class="help-banner">
-    💡 マスをタップ → 詳細を見る → 「📝 提出する」で課題タイトルが自動入力されたフォームが開きます
+    💡 「📝 提出する」を押すと、選んだ課題タイトルが自動入力されたフォームが開きます
   </div>
 
-  <!-- ビンゴマトリクス -->
-  <div class="bingo-wrap">
-    <div class="bingo" id="bingo"></div>
+  <div class="filter-bar" id="filter-bar">
+    <button class="filter-btn active" data-subject="all">すべて</button>
+    <button class="filter-btn" data-subject="AI基礎">🤖 AI基礎</button>
+    <button class="filter-btn" data-subject="英語">📖 英語</button>
+    <button class="filter-btn" data-subject="数学">📐 数学</button>
+    <button class="filter-btn" data-subject="勉強法">📚 勉強法</button>
+    <button class="filter-btn" data-subject="クリエイティブ">🎨 クリエイティブ</button>
   </div>
+
+  <div id="mission-area"></div>
 
 </main>
-
-<!-- 詳細モーダル -->
-<div class="modal-backdrop" id="modal-backdrop">
-  <div class="modal-box">
-    <button class="close" onclick="closeModal()">×</button>
-    <h3 id="m-subject"></h3>
-    <div class="modal-meta">
-      <span class="stars" id="m-stars"></span>
-      <span class="xp" id="m-xp"></span>
-    </div>
-    <div class="modal-title-text" id="m-title"></div>
-    <div class="modal-id-info">
-      課題ID: <strong id="m-id"></strong>　|　承認時 <strong id="m-xp2"></strong> 加算
-    </div>
-    <a id="m-submit" href="#" target="_blank" class="submit-btn">📝 提出する（タイトル自動入力）</a>
-  </div>
-</div>
 
 <footer class="site-footer">© SHIFT AI ジュニア モンスター育成プロジェクト</footer>
 
@@ -270,26 +177,27 @@ const SUBJECTS = [
 ];
 const XP_BY_STAR = { 1:15, 2:25, 3:40, 4:60, 5:80 };
 let MISSIONS = [];
-let CURRENT_MISSION = null;
-let FORM_INFO = null; // { formUrl, entries: { mission, nickname, ... } }
+let FORM_INFO = null;
 
 (async function () {
-  // 課題JSON読み込み
   try {
     const res = await fetch('docs/missions.json');
     const json = await res.json();
     MISSIONS = json.missions || [];
   } catch (err) {
-    document.getElementById('bingo').innerHTML = '<p style="color:#aaa;">課題リストの読み込みに失敗しました</p>';
+    document.getElementById('mission-area').innerHTML = '<p style="color:#aaa;">課題リストの読み込みに失敗しました</p>';
     return;
   }
-  renderBingo();
 
-  // 右下ミニアバター描画 + フォーム情報取得（並列）
-  await Promise.allSettled([
-    loadMonster(),
-    loadFormInfo(),
-  ]);
+  await Promise.allSettled([loadMonster(), loadFormInfo()]);
+  render('all');
+
+  document.getElementById('filter-bar').addEventListener('click', (e) => {
+    if (!e.target.classList.contains('filter-btn')) return;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    render(e.target.dataset.subject);
+  });
 })();
 
 async function loadMonster() {
@@ -319,7 +227,6 @@ async function loadFormInfo() {
     const data = await res.json();
     if (data.ok && data.formUrl && data.entries && data.entries.mission) {
       FORM_INFO = data;
-      // GASのformUrlを優先（config.jsより新しい）
       window.MZ_CONFIG.FORM_URL = data.formUrl;
     }
   } catch (e) {}
@@ -340,69 +247,49 @@ function buildPrefilledUrl(mission) {
   return formUrl;
 }
 
-function renderBingo() {
-  const bingo = document.getElementById('bingo');
-  let html = '<div class="corner"></div>';
-  // 上ヘッダ ★1〜★5
-  for (let lv = 1; lv <= 5; lv++) {
-    html += `<div class="col-h">★${lv}<span class="lvl-xp">+${XP_BY_STAR[lv]}</span></div>`;
-  }
-  // 各教科行
-  SUBJECTS.forEach(s => {
-    html += `<div class="row-h" style="--row-color:${s.color}"><span class="ic">${s.icon}</span>${s.key}</div>`;
-    for (let lv = 1; lv <= 5; lv++) {
-      const m = MISSIONS.find(x => x.subject === s.key && x.difficulty === lv);
-      if (!m) {
-        html += '<div class="cell" style="opacity:0.3" data-empty="1"></div>';
-      } else {
-        html += `
-          <div class="cell" style="--row-color:${s.color}" onclick="openModal('${m.id}')" title="${escapeAttr(m.title)}">
-            <div class="icon">${s.icon}</div>
-            <div class="ttl">${escapeHtml(m.title)}</div>
-            <div class="xp">+${XP_BY_STAR[lv]}</div>
-          </div>`;
-      }
-    }
-  });
-  bingo.innerHTML = html;
+function render(filter) {
+  const filtered = filter === 'all'
+    ? MISSIONS
+    : MISSIONS.filter(m => m.subject === filter);
+
+  const subjectsToShow = filter === 'all'
+    ? SUBJECTS
+    : SUBJECTS.filter(s => s.key === filter);
+
+  const html = subjectsToShow.map(s => {
+    const list = filtered
+      .filter(m => m.subject === s.key)
+      .sort((a, b) => a.difficulty - b.difficulty);
+    if (!list.length) return '';
+    const cards = list.map(m => {
+      const stars = '★'.repeat(m.difficulty) + '☆'.repeat(5 - m.difficulty);
+      const url = buildPrefilledUrl(m);
+      const btnHtml = url
+        ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="submit-btn">📝 提出する（タイトル自動入力）</a>`
+        : `<button class="submit-btn disabled" disabled>📝 提出フォーム準備中</button>`;
+      return `
+        <div class="mission-card" style="--subject-color:${s.color}">
+          <div class="head">
+            <span class="stars">${stars}</span>
+            <span class="xp-badge">+${XP_BY_STAR[m.difficulty]} XP</span>
+          </div>
+          <div class="title">${escapeHtml(m.title)}</div>
+          <div class="foot">${btnHtml}</div>
+        </div>`;
+    }).join('');
+    return `
+      <section class="subject-block">
+        <div class="subject-header" style="--subject-color:${s.color}">
+          <span class="icon">${s.icon}</span>
+          <h2>${s.key}</h2>
+          <span class="count">${list.length}課題</span>
+        </div>
+        <div class="mission-grid">${cards}</div>
+      </section>`;
+  }).join('');
+
+  document.getElementById('mission-area').innerHTML = html || '<p style="color:#aaa;text-align:center;padding:24px;">該当する課題がありません</p>';
 }
-
-function openModal(id) {
-  const m = MISSIONS.find(x => x.id === id);
-  if (!m) return;
-  CURRENT_MISSION = m;
-  const subject = SUBJECTS.find(s => s.key === m.subject);
-  document.getElementById('m-subject').textContent = `${subject.icon} ${m.subject}`;
-  document.getElementById('m-stars').textContent = '★'.repeat(m.difficulty) + '☆'.repeat(5 - m.difficulty);
-  document.getElementById('m-xp').textContent = `+${XP_BY_STAR[m.difficulty]} XP`;
-  document.getElementById('m-xp2').textContent = `+${XP_BY_STAR[m.difficulty]} XP`;
-  document.getElementById('m-title').textContent = m.title;
-  document.getElementById('m-id').textContent = m.id;
-
-  const submitBtn = document.getElementById('m-submit');
-  const url = buildPrefilledUrl(m);
-  if (url) {
-    submitBtn.href = url;
-    submitBtn.classList.remove('disabled');
-    submitBtn.textContent = '📝 提出する（タイトル自動入力）';
-  } else {
-    submitBtn.removeAttribute('href');
-    submitBtn.classList.add('disabled');
-    submitBtn.textContent = '📝 提出フォーム準備中...';
-  }
-  document.getElementById('modal-backdrop').classList.add('show');
-}
-
-function closeModal() {
-  document.getElementById('modal-backdrop').classList.remove('show');
-}
-
-document.getElementById('modal-backdrop').addEventListener('click', (e) => {
-  if (e.target.id === 'modal-backdrop') closeModal();
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
-});
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
