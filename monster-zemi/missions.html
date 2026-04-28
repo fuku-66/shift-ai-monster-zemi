@@ -98,14 +98,14 @@
     font-weight: bold;
   }
 
-  /* タブレット〜スマホ */
+  /* タブレット */
   @media (max-width: 768px) {
-    .bingo .cell { min-height: 100px; padding: 6px 4px; gap: 3px; }
-    .bingo .cell .icon { font-size: 18px; }
-    .bingo .cell .ttl { font-size: 10px; -webkit-line-clamp: 3; }
-    .bingo .cell .xp { font-size: 9px; padding: 1px 5px; }
+    .bingo .cell { min-height: 90px; padding: 6px 4px; gap: 4px; }
+    .bingo .cell .icon { font-size: 26px; }
+    .bingo .cell .ttl { display: none; }
+    .bingo .cell .xp { font-size: 10px; padding: 2px 6px; }
   }
-  /* スマホ */
+  /* スマホ: アイコン中心のシンプル表示（ビンゴ感優先） */
   @media (max-width: 480px) {
     .bingo {
       grid-template-columns: 44px repeat(5, 1fr);
@@ -115,10 +115,14 @@
     .bingo .row-h .ic { font-size: 16px; }
     .bingo .col-h { font-size: 10px; padding: 4px; }
     .bingo .col-h .lvl-xp { font-size: 8px; }
-    .bingo .cell { min-height: 86px; padding: 4px 3px; border-width: 1.5px; border-radius: 6px; }
-    .bingo .cell .icon { font-size: 14px; }
-    .bingo .cell .ttl { font-size: 9px; line-height: 1.3; -webkit-line-clamp: 4; }
-    .bingo .cell .xp { font-size: 8px; padding: 0 4px; }
+    .bingo .cell {
+      min-height: 64px; aspect-ratio: 1;
+      padding: 4px; border-width: 1.5px; border-radius: 6px;
+      gap: 4px;
+    }
+    .bingo .cell .icon { font-size: 24px; }
+    .bingo .cell .ttl { display: none; }
+    .bingo .cell .xp { font-size: 9px; padding: 1px 4px; }
   }
 
   /* ===== モーダル ===== */
