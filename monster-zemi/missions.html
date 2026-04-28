@@ -146,7 +146,7 @@
 <main class="container">
 
   <div class="help-banner">
-    💡 「📝 提出する」を押すと、選んだ課題タイトルが自動入力されたフォームが開きます
+    💡 課題を選んで「📝 提出する」を押すと、提出フォームが開きます
   </div>
 
   <div class="filter-bar" id="filter-bar">
@@ -265,7 +265,7 @@ function render(filter) {
       const stars = '★'.repeat(m.difficulty) + '☆'.repeat(5 - m.difficulty);
       const url = buildPrefilledUrl(m);
       const btnHtml = url
-        ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="submit-btn">📝 提出する（タイトル自動入力）</a>`
+        ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="submit-btn">📝 提出する</a>`
         : `<button class="submit-btn disabled" disabled>📝 提出フォーム準備中</button>`;
       return `
         <div class="mission-card" style="--subject-color:${s.color}">
