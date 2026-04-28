@@ -10,9 +10,16 @@
 </head>
 <body>
 
+<!-- 右上固定ミニアバター -->
+<div id="mini-monster" class="mini-monster" onclick="toggleMonsterDetail()" title="タップで詳細表示">
+  <img id="mini-monster-img" src="" alt="">
+  <div id="mini-monster-emoji" class="mini-emoji">🥚</div>
+  <div class="mini-lv" id="mini-lv">Lv.1</div>
+</div>
+
 <header class="site-header">
   <h1>🥚 モンスター育成プロジェクト</h1>
-  <p class="tagline">みんなの提出で、モンスターが育つ。提出した教科のバランスで姿が変わる。</p>
+  <p class="tagline">みんなの提出で、モンスターが育つ</p>
   <nav class="nav">
     <a href="index.html" class="active">ホーム</a>
     <a href="missions.html">課題一覧</a>
@@ -23,55 +30,75 @@
 
 <main class="container">
 
-  <section class="monster-section">
-    <div class="monster-display">
-      <div class="monster-image-wrap">
-        <img id="monster-image" src="" alt="">
-        <div id="monster-placeholder" class="monster-placeholder">🥚</div>
+  <!-- コンパクトステータスバー（常時表示） -->
+  <section class="status-bar">
+    <div class="status-bar-row">
+      <div class="status-monster">
+        <span class="status-lv-badge" id="status-lv">Lv.1</span>
+        <span class="status-name" id="status-name">…</span>
       </div>
-      <div id="monster-name" class="monster-name">…</div>
-      <div id="monster-lv" class="monster-lv">Lv.1</div>
+      <div class="status-xp" id="status-xp">0 XP</div>
     </div>
-
-    <div class="stats-panel">
-      <h2>📊 ステータス</h2>
-      <div id="monster-total-xp" class="total-xp">0 XP</div>
-      <div id="next-lv-info" class="next-lv-info"></div>
-
-      <div class="meta-grid">
-        <span class="label">総提出数</span>
-        <span id="total-submissions" class="value">0 件</span>
-        <span class="label">参加メンバー</span>
-        <span id="total-members" class="value">0 人</span>
-      </div>
-
-      <ul class="axis-list">
-        <li style="border-left-color:#4FC3F7"><span>🤖 AI基礎</span><span id="axis-ai">0 XP</span></li>
-        <li style="border-left-color:#FF8A65"><span>📖 英語</span><span id="axis-eng">0 XP</span></li>
-        <li style="border-left-color:#81C784"><span>📐 数学</span><span id="axis-math">0 XP</span></li>
-        <li style="border-left-color:#BA68C8"><span>📚 勉強法</span><span id="axis-study">0 XP</span></li>
-        <li style="border-left-color:#F06292"><span>🎨 クリエイティブ</span><span id="axis-creative">0 XP</span></li>
-      </ul>
+    <div class="xp-bar">
+      <div class="xp-bar-fill" id="xp-bar-fill"></div>
+    </div>
+    <div class="status-bar-meta">
+      <span id="next-lv-info">次のレベルまで…</span>
+      <span class="status-bar-meta-right">
+        <span id="total-submissions">0</span>件提出 ·
+        <span id="total-members">0</span>人参加
+      </span>
     </div>
   </section>
 
+  <!-- 軸別ポイント (常時) -->
+  <section class="axis-section">
+    <ul class="axis-list">
+      <li style="border-left-color:#4FC3F7"><span>🤖 AI基礎</span><span id="axis-ai">0</span></li>
+      <li style="border-left-color:#FF8A65"><span>📖 英語</span><span id="axis-eng">0</span></li>
+      <li style="border-left-color:#81C784"><span>📐 数学</span><span id="axis-math">0</span></li>
+      <li style="border-left-color:#BA68C8"><span>📚 勉強法</span><span id="axis-study">0</span></li>
+      <li style="border-left-color:#F06292"><span>🎨 クリエイティブ</span><span id="axis-creative">0</span></li>
+    </ul>
+  </section>
+
+  <!-- レーダーチャート（トグル） -->
   <section class="radar-section">
-    <h2>📡 5教科レーダーチャート</h2>
-    <div class="radar-wrap">
+    <button class="radar-toggle" id="radar-toggle" onclick="toggleRadar()">
+      <span>📡 詳細レーダーチャートを見る</span>
+      <span id="radar-toggle-icon">▼</span>
+    </button>
+    <div class="radar-wrap" id="radar-wrap" style="display:none;">
       <canvas id="radar-chart"></canvas>
     </div>
   </section>
 
+  <!-- CTA -->
   <section class="cta-section">
     <a href="missions.html" class="btn-primary">⚔️ 課題に挑戦する</a>
   </section>
 
+  <!-- 最新提出 -->
   <section class="recent-section">
     <h2>📥 最新の提出</h2>
     <ul id="recent-list" class="recent-list"></ul>
   </section>
 
 </main>
+
+<!-- モンスター詳細モーダル -->
+<div class="modal-backdrop" id="monster-modal-backdrop">
+  <div class="modal monster-modal">
+    <button class="close" onclick="closeMonsterModal()">×</button>
+    <div class="monster-image-wrap" style="margin: 0 auto 16px;">
+      <img id="modal-monster-img" src="" alt="">
+      <div id="modal-monster-emoji" class="monster-placeholder">🥚</div>
+    </div>
+    <div id="modal-monster-name" class="monster-name" style="text-align:center;">…</div>
+    <div id="modal-monster-lv" class="monster-lv" style="text-align:center; margin-bottom:12px;">Lv.1</div>
+    <div id="modal-monster-meta" style="text-align:center; color:#d8c5ff; font-size:13px;"></div>
+  </div>
+</div>
 
 <footer class="site-footer">
   © SHIFT AI ジュニア モンスター育成プロジェクト

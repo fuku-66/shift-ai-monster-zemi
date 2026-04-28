@@ -1,55 +1,54 @@
 /**
- * トップページ メインロジック
+ * トップページ メインロジック v2
+ * ステータスバー + ミニアバター + トグル式チャート
  */
 (async function () {
   const cfg = window.MZ_CONFIG;
   const state = await window.MZ_API.fetchState();
   const stats = state.stats || { ai: 0, eng: 0, math: 0, study: 0, creative: 0 };
 
-  // モンスター決定
   const m = window.MZ_MONSTER.determineMonster(stats);
 
-  // モンスター画像・名前を反映
-  const img = document.getElementById('monster-image');
-  if (img) {
-    img.src = m.imagePath;
-    img.alt = m.monsterName;
-    let triedSvg = false;
-    img.onerror = () => {
-      // PNGがなければSVGプレースホルダーを試す
-      if (!triedSvg && img.src.endsWith('.png')) {
-        triedSvg = true;
-        img.src = m.imagePath.replace('.png', '.svg');
-        return;
-      }
-      // どちらもなければ絵文字プレースホルダー
-      img.style.display = 'none';
-      const ph = document.getElementById('monster-placeholder');
-      if (ph) ph.style.display = 'block';
-    };
-  }
-  setText('monster-name', m.monsterName);
-  setText('monster-lv', 'Lv.' + m.lv);
-  setText('monster-total-xp', m.total + ' XP');
-  setText('total-submissions', (state.totalSubmissions || 0) + ' 件');
-  setText('total-members', (state.totalMembers || 0) + ' 人');
+  // ステータスバー
+  setText('status-lv', 'Lv.' + m.lv);
+  setText('status-name', m.monsterName);
+  setText('status-xp', m.total + ' XP');
 
-  // 軸別ポイント表示
+  // XPバー進捗
+  const cur = cfg.EVOLUTION.find(e => e.lv === m.lv);
+  const next = cfg.EVOLUTION.find(e => e.lv === m.lv + 1);
+  if (next) {
+    const span = next.xpStart - cur.xpStart;
+    const progress = Math.min(100, ((m.total - cur.xpStart) / span) * 100);
+    document.getElementById('xp-bar-fill').style.width = progress + '%';
+    setText('next-lv-info', `次のLv.${next.lv}まで あと ${next.xpStart - m.total} XP`);
+  } else {
+    document.getElementById('xp-bar-fill').style.width = '100%';
+    setText('next-lv-info', '🌟 最終形態到達');
+  }
+
+  setText('total-submissions', state.totalSubmissions || 0);
+  setText('total-members', state.totalMembers || 0);
+
+  // 軸別ポイント
   cfg.SUBJECTS.forEach(s => {
-    setText('axis-' + s.key, (stats[s.key] || 0) + ' XP');
+    setText('axis-' + s.key, (stats[s.key] || 0));
   });
 
-  // 次レベルまでの残りXP
-  const nextLv = cfg.EVOLUTION.find(e => e.lv === m.lv + 1);
-  if (nextLv) {
-    const remain = nextLv.xpStart - m.total;
-    setText('next-lv-info', `次のLv.${nextLv.lv}まで あと ${remain} XP`);
-  } else {
-    setText('next-lv-info', '🌟 最終形態に到達！');
-  }
+  // ミニアバター
+  setMonsterImage('mini-monster-img', 'mini-monster-emoji', m.imagePath, m.monsterName);
+  setText('mini-lv', 'Lv.' + m.lv);
 
-  // レーダーチャート
-  drawRadar(stats);
+  // モーダル用画像（先にセット）
+  setMonsterImage('modal-monster-img', 'modal-monster-emoji', m.imagePath, m.monsterName);
+  setText('modal-monster-name', m.monsterName);
+  setText('modal-monster-lv', 'Lv.' + m.lv);
+  const balanceText = (m.lv >= 3 && state.isBalance) ? '🌈 全軸バランス進化' : '';
+  setText('modal-monster-meta', `${m.total} XP 累計 ｜ ${state.totalSubmissions || 0} 件提出 ${balanceText}`);
+
+  // レーダーチャート（初期は描画しない、トグル時に描画）
+  window._radarStats = stats;
+  window._radarDrawn = false;
 
   // 最新提出
   renderRecent(state.recent || []);
@@ -58,6 +57,47 @@
 function setText(id, text) {
   const el = document.getElementById(id);
   if (el) el.textContent = text;
+}
+
+function setMonsterImage(imgId, emojiId, imagePath, alt) {
+  const img = document.getElementById(imgId);
+  const emoji = document.getElementById(emojiId);
+  if (!img) return;
+  img.src = imagePath;
+  img.alt = alt || '';
+  let triedSvg = false;
+  img.onerror = () => {
+    if (!triedSvg && img.src.endsWith('.png')) {
+      triedSvg = true;
+      img.src = imagePath.replace('.png', '.svg');
+      return;
+    }
+    img.style.display = 'none';
+    if (emoji) emoji.style.display = 'block';
+  };
+}
+
+function toggleRadar() {
+  const wrap = document.getElementById('radar-wrap');
+  const toggle = document.getElementById('radar-toggle');
+  const icon = document.getElementById('radar-toggle-icon');
+  const open = wrap.style.display !== 'none';
+
+  if (open) {
+    wrap.style.display = 'none';
+    toggle.classList.remove('open');
+    icon.textContent = '▼';
+    toggle.querySelector('span:first-child').textContent = '📡 詳細レーダーチャートを見る';
+  } else {
+    wrap.style.display = 'block';
+    toggle.classList.add('open');
+    icon.textContent = '▲';
+    toggle.querySelector('span:first-child').textContent = '📡 レーダーチャートを閉じる';
+    if (!window._radarDrawn) {
+      drawRadar(window._radarStats || {});
+      window._radarDrawn = true;
+    }
+  }
 }
 
 function drawRadar(stats) {
@@ -90,13 +130,32 @@ function drawRadar(stats) {
           ticks: { color: '#aaa', backdropColor: 'transparent' },
           grid: { color: 'rgba(255,255,255,0.15)' },
           angleLines: { color: 'rgba(255,255,255,0.2)' },
-          pointLabels: { color: '#fff', font: { size: 14, weight: 'bold' } },
+          pointLabels: { color: '#fff', font: { size: 12, weight: 'bold' } },
         },
       },
       plugins: { legend: { display: false } },
     },
   });
 }
+
+function toggleMonsterDetail() {
+  document.getElementById('monster-modal-backdrop').classList.add('show');
+}
+function closeMonsterModal() {
+  document.getElementById('monster-modal-backdrop').classList.remove('show');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const backdrop = document.getElementById('monster-modal-backdrop');
+  if (backdrop) {
+    backdrop.addEventListener('click', (e) => {
+      if (e.target.id === 'monster-modal-backdrop') closeMonsterModal();
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMonsterModal();
+  });
+});
 
 function renderRecent(recent) {
   const ul = document.getElementById('recent-list');
@@ -109,7 +168,7 @@ function renderRecent(recent) {
     <li class="recent-item">
       <div class="recent-meta">
         <span class="recent-date">${r.date || ''}</span>
-        <span class="recent-subject" data-subject="${r.subject || ''}">${r.subject || ''}</span>
+        <span class="recent-subject">${r.subject || ''}</span>
         <span class="recent-xp">+${r.xp || 15} XP</span>
       </div>
       <div class="recent-name">${escapeHtml(r.name || 'ゲスト')}</div>

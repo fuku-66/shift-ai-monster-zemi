@@ -7,50 +7,166 @@
 <link rel="stylesheet" href="assets/css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <style>
-  .mission-grid { display: grid; gap: 12px; }
-  .subject-block { margin-bottom: 32px; }
-  .subject-block h2 {
-    color: #F1C40F; padding: 8px 12px;
-    border-left: 4px solid #F1C40F;
-    margin-bottom: 12px;
+  /* マトリクス表示 (PC) */
+  .matrix-wrap { overflow-x: auto; margin-bottom: 24px; }
+  .matrix-table {
+    border-collapse: separate; border-spacing: 6px;
+    width: 100%; min-width: 720px;
   }
-  .mission-card {
-    padding: 12px 16px;
-    background: rgba(255,255,255,0.06);
+  .matrix-table th, .matrix-table td {
+    padding: 8px;
+  }
+  .matrix-table thead th {
+    color: #F1C40F; font-size: 14px; text-align: center;
+    background: rgba(241,196,15,0.08);
     border-radius: 4px;
-    display: grid;
-    grid-template-columns: 80px 1fr auto;
-    gap: 12px; align-items: center;
   }
-  .mission-id { color: #aaa; font-size: 12px; }
-  .mission-stars { color: #F1C40F; font-size: 14px; letter-spacing: 0.1em; }
-  .mission-title { font-size: 14px; }
-  .mission-xp { color: #F1C40F; font-weight: bold; font-size: 12px; }
-  @media (max-width: 600px) {
-    .mission-card { grid-template-columns: 1fr; }
+  .matrix-table tbody th {
+    text-align: left; color: #fff;
+    background: rgba(255,255,255,0.05);
+    border-left: 4px solid var(--subject-color, #F1C40F);
+    border-radius: 4px;
+    font-size: 13px;
+    width: 110px;
+    white-space: nowrap;
   }
-  .filter-bar {
-    display: flex; gap: 8px; flex-wrap: wrap;
-    margin-bottom: 24px;
+  .mission-cell {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(241,196,15,0.25);
+    border-radius: 6px;
+    padding: 10px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    height: 88px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    text-align: left;
+    color: #ddd;
+    font-size: 12px;
+    line-height: 1.4;
   }
-  .filter-btn {
-    padding: 6px 14px;
+  .mission-cell:hover {
+    background: rgba(241,196,15,0.12);
+    border-color: #F1C40F;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(241,196,15,0.2);
+  }
+  .mission-cell .id { color: #888; font-size: 10px; margin-bottom: 4px; }
+  .mission-cell .title { flex: 1; font-size: 11.5px; overflow: hidden; }
+  .mission-cell .xp { color: #F1C40F; font-weight: bold; font-size: 11px; text-align: right; }
+
+  /* モバイル: タブ切替 */
+  .subject-tabs { display: none; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; }
+  .subject-tabs::-webkit-scrollbar { height: 4px; }
+  .subject-tab {
+    flex-shrink: 0;
+    padding: 8px 14px;
     background: rgba(255,255,255,0.06);
-    border: 1px solid #F1C40F;
+    border: 1px solid rgba(241,196,15,0.4);
     color: #d8c5ff;
-    cursor: pointer; border-radius: 4px;
-    font-family: inherit;
+    cursor: pointer; border-radius: 20px;
+    font-family: inherit; font-size: 13px;
+    white-space: nowrap;
   }
-  .filter-btn.active {
+  .subject-tab.active {
     background: #F1C40F; color: #0a0a1f; font-weight: bold;
   }
+  .mobile-list { display: none; }
+  .mobile-list .mobile-card {
+    padding: 12px;
+    background: rgba(255,255,255,0.06);
+    border-left: 4px solid var(--subject-color, #F1C40F);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .mobile-list .mobile-card .meta {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: #aaa; margin-bottom: 6px;
+  }
+  .mobile-list .mobile-card .stars { color: #F1C40F; letter-spacing: 0.05em; }
+  .mobile-list .mobile-card .xp { color: #F1C40F; font-weight: bold; }
+  .mobile-list .mobile-card .title { font-size: 13px; color: #fff; line-height: 1.5; }
+
+  @media (max-width: 768px) {
+    .matrix-wrap { display: none; }
+    .subject-tabs { display: flex; }
+    .mobile-list { display: block; }
+  }
+
+  /* モーダル */
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: linear-gradient(135deg, #1a0d2e, #2d1b4e);
+    border: 2px solid #F1C40F;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 480px; width: 100%;
+    box-shadow: 0 0 30px rgba(241,196,15,0.4);
+  }
+  .modal .close {
+    float: right; background: none; border: none; color: #aaa;
+    font-size: 24px; cursor: pointer; padding: 0; line-height: 1;
+  }
+  .modal h3 { color: #F1C40F; font-size: 18px; margin-bottom: 8px; }
+  .modal .modal-meta {
+    display: flex; gap: 12px; margin-bottom: 16px;
+    font-size: 12px; color: #aaa;
+  }
+  .modal .modal-meta .stars { color: #F1C40F; letter-spacing: 0.05em; }
+  .modal .modal-meta .xp { color: #F1C40F; font-weight: bold; }
+  .modal .modal-id {
+    background: rgba(0,0,0,0.4);
+    border: 1px dashed rgba(241,196,15,0.5);
+    border-radius: 4px;
+    padding: 12px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: #d8c5ff;
+  }
+  .modal .modal-id strong { color: #F1C40F; font-size: 16px; }
+  .modal .copy-btn {
+    background: rgba(241,196,15,0.15);
+    color: #F1C40F;
+    border: 1px solid #F1C40F;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    margin-left: 8px;
+  }
+  .modal .copy-btn:hover { background: rgba(241,196,15,0.25); }
+  .modal .modal-actions {
+    margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .modal .btn-primary { padding: 10px 20px; font-size: 14px; }
+  .modal-help { color: #aaa; font-size: 12px; margin-top: 12px; line-height: 1.6; }
+
+  /* 上部CTA */
+  .top-cta {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    padding: 16px;
+    background: rgba(241,196,15,0.06);
+    border: 1px solid rgba(241,196,15,0.3);
+    border-radius: 8px;
+    margin-bottom: 24px;
+  }
+  .top-cta .help { flex: 1; font-size: 13px; color: #d8c5ff; min-width: 200px; }
 </style>
 </head>
 <body>
 
 <header class="site-header">
   <h1>⚔️ 課題一覧</h1>
-  <p class="tagline">5教科×5難易度。挑戦する課題を選ぼう</p>
+  <p class="tagline">5教科×5難易度。マスをタップで詳細を見る</p>
   <nav class="nav">
     <a href="index.html">ホーム</a>
     <a href="missions.html" class="active">課題一覧</a>
@@ -61,97 +177,206 @@
 
 <main class="container">
 
-  <div class="filter-bar" id="filter-bar">
-    <button class="filter-btn active" data-subject="all">すべて</button>
-    <button class="filter-btn" data-subject="AI基礎">🤖 AI基礎</button>
-    <button class="filter-btn" data-subject="英語">📖 英語</button>
-    <button class="filter-btn" data-subject="数学">📐 数学</button>
-    <button class="filter-btn" data-subject="勉強法">📚 勉強法</button>
-    <button class="filter-btn" data-subject="クリエイティブ">🎨 クリエイティブ</button>
+  <div class="top-cta">
+    <div class="help">
+      💡 マスをタップ → 課題ID（例: m-a01）をコピー → 提出フォームに貼り付けて提出
+    </div>
+    <a id="submit-btn" href="#" target="_blank" class="btn-primary">📝 提出フォームを開く</a>
   </div>
 
-  <div class="cta-section" style="text-align:left; margin: 0 0 24px;">
-    <a id="submit-btn" href="#" target="_blank" class="btn-primary">📝 提出する（Googleフォーム）</a>
-    <p style="color:#aaa; font-size:12px; margin-top:8px;">提出フォームのURLは config.js の FORM_URL に設定してください</p>
+  <!-- PC: マトリクス表 -->
+  <div class="matrix-wrap">
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>★1<br><small style="color:#aaa;font-size:10px">+15 XP</small></th>
+          <th>★2<br><small style="color:#aaa;font-size:10px">+25 XP</small></th>
+          <th>★3<br><small style="color:#aaa;font-size:10px">+40 XP</small></th>
+          <th>★4<br><small style="color:#aaa;font-size:10px">+60 XP</small></th>
+          <th>★5<br><small style="color:#aaa;font-size:10px">+80 XP</small></th>
+        </tr>
+      </thead>
+      <tbody id="matrix-body"></tbody>
+    </table>
   </div>
 
-  <div id="mission-area"></div>
+  <!-- モバイル: タブ + リスト -->
+  <div class="subject-tabs" id="subject-tabs"></div>
+  <div class="mobile-list" id="mobile-list"></div>
 
 </main>
+
+<!-- 詳細モーダル -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" id="modal">
+    <button class="close" onclick="closeModal()">×</button>
+    <h3 id="m-subject"></h3>
+    <div class="modal-meta">
+      <span class="stars" id="m-stars"></span>
+      <span class="xp" id="m-xp"></span>
+    </div>
+    <div style="font-size:14px; line-height:1.6; color:#fff;" id="m-title"></div>
+    <div class="modal-id">
+      <div style="font-size:11px; color:#aaa; margin-bottom:4px;">この課題ID（提出時にコピペ）</div>
+      <strong id="m-id"></strong>
+      <button class="copy-btn" onclick="copyId()">📋 コピー</button>
+      <span id="copy-status" style="color:#81C784; font-size:11px; margin-left:8px;"></span>
+    </div>
+    <div class="modal-actions">
+      <a id="m-submit" href="#" target="_blank" class="btn-primary">📝 提出フォームを開く</a>
+    </div>
+    <p class="modal-help">フォームの「挑戦した課題」欄に、上のIDをそのまま貼り付けてください。</p>
+  </div>
+</div>
 
 <footer class="site-footer">© SHIFT AI ジュニア モンスター育成プロジェクト</footer>
 
 <script src="assets/js/config.js"></script>
 <script>
+const SUBJECTS = [
+  { key: 'AI基礎',         icon: '🤖', color: '#4FC3F7' },
+  { key: '英語',           icon: '📖', color: '#FF8A65' },
+  { key: '数学',           icon: '📐', color: '#81C784' },
+  { key: '勉強法',         icon: '📚', color: '#BA68C8' },
+  { key: 'クリエイティブ', icon: '🎨', color: '#F06292' },
+];
+const XP_BY_STAR = { 1:15, 2:25, 3:40, 4:60, 5:80 };
+let MISSIONS = [];
+let CURRENT_MISSION = null;
+
 (async function () {
   const cfg = window.MZ_CONFIG;
-  const subjectColor = {
-    'AI基礎': '#4FC3F7', '英語': '#FF8A65', '数学': '#81C784',
-    '勉強法': '#BA68C8', 'クリエイティブ': '#F06292',
-  };
-  const subjectIcon = {
-    'AI基礎': '🤖', '英語': '📖', '数学': '📐', '勉強法': '📚', 'クリエイティブ': '🎨',
-  };
+  const formReady = cfg.FORM_URL && !cfg.FORM_URL.includes('PUT_YOUR');
 
-  // 提出ボタン
+  // 提出ボタン制御
   const submitBtn = document.getElementById('submit-btn');
-  if (cfg.FORM_URL && !cfg.FORM_URL.includes('PUT_YOUR')) {
+  if (formReady) {
     submitBtn.href = cfg.FORM_URL;
   } else {
     submitBtn.style.opacity = '0.5';
     submitBtn.title = '提出フォーム未設定';
+    submitBtn.removeAttribute('href');
   }
 
-  // 課題JSONを読み込む
-  let missions = [];
+  // 課題JSON読み込み
   try {
     const res = await fetch('docs/missions.json');
     const json = await res.json();
-    missions = json.missions || [];
+    MISSIONS = json.missions || [];
   } catch (err) {
-    document.getElementById('mission-area').innerHTML = '<p style="color:#aaa;">課題リストの読み込みに失敗しました</p>';
+    document.querySelector('.matrix-wrap').innerHTML = '<p style="color:#aaa;">課題リストの読み込みに失敗しました</p>';
     return;
   }
 
-  function render(filter) {
-    const filtered = filter === 'all' ? missions : missions.filter(m => m.subject === filter);
-    const bySubject = {};
-    filtered.forEach(m => {
-      if (!bySubject[m.subject]) bySubject[m.subject] = [];
-      bySubject[m.subject].push(m);
-    });
-
-    const xpByStar = { 1:15, 2:25, 3:40, 4:60, 5:80 };
-    const html = Object.entries(bySubject).map(([subject, list]) => `
-      <section class="subject-block">
-        <h2 style="border-left-color:${subjectColor[subject]||'#F1C40F'}">${subjectIcon[subject]||''} ${subject}</h2>
-        <div class="mission-grid">
-          ${list.sort((a,b)=>a.difficulty-b.difficulty).map(m => `
-            <div class="mission-card">
-              <div>
-                <div class="mission-id">${m.id}</div>
-                <div class="mission-stars">${'★'.repeat(m.difficulty)}${'☆'.repeat(5-m.difficulty)}</div>
-              </div>
-              <div class="mission-title">${m.title}</div>
-              <div class="mission-xp">+${xpByStar[m.difficulty]} XP</div>
-            </div>
-          `).join('')}
-        </div>
-      </section>
-    `).join('');
-
-    document.getElementById('mission-area').innerHTML = html || '<p style="color:#aaa;">該当する課題がありません</p>';
-  }
-
-  document.getElementById('filter-bar').addEventListener('click', (e) => {
-    if (!e.target.classList.contains('filter-btn')) return;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    e.target.classList.add('active');
-    render(e.target.dataset.subject);
-  });
-
-  render('all');
+  renderMatrix();
+  renderMobile();
 })();
+
+function renderMatrix() {
+  const tbody = document.getElementById('matrix-body');
+  tbody.innerHTML = SUBJECTS.map(s => {
+    const cells = [1,2,3,4,5].map(diff => {
+      const m = MISSIONS.find(x => x.subject === s.key && x.difficulty === diff);
+      if (!m) return '<td></td>';
+      const shortTitle = m.title.length > 32 ? m.title.substring(0, 30) + '…' : m.title;
+      return `<td>
+        <div class="mission-cell" onclick="openModal('${m.id}')">
+          <div class="id">${m.id}</div>
+          <div class="title">${escapeHtml(shortTitle)}</div>
+          <div class="xp">+${XP_BY_STAR[diff]} XP</div>
+        </div>
+      </td>`;
+    }).join('');
+    return `<tr>
+      <th style="--subject-color:${s.color}">${s.icon} ${s.key}</th>
+      ${cells}
+    </tr>`;
+  }).join('');
+}
+
+function renderMobile() {
+  // タブ生成
+  const tabs = document.getElementById('subject-tabs');
+  tabs.innerHTML = SUBJECTS.map((s, i) => `
+    <button class="subject-tab ${i === 0 ? 'active' : ''}" data-subject="${s.key}">
+      ${s.icon} ${s.key}
+    </button>
+  `).join('');
+  tabs.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('subject-tab')) return;
+    document.querySelectorAll('.subject-tab').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    renderMobileList(e.target.dataset.subject);
+  });
+  renderMobileList(SUBJECTS[0].key);
+}
+
+function renderMobileList(subjectKey) {
+  const subject = SUBJECTS.find(s => s.key === subjectKey);
+  const list = MISSIONS
+    .filter(m => m.subject === subjectKey)
+    .sort((a, b) => a.difficulty - b.difficulty);
+  const container = document.getElementById('mobile-list');
+  container.innerHTML = list.map(m => `
+    <div class="mobile-card" style="--subject-color:${subject.color}" onclick="openModal('${m.id}')">
+      <div class="meta">
+        <span><span class="stars">${'★'.repeat(m.difficulty)}${'☆'.repeat(5-m.difficulty)}</span> · ${m.id}</span>
+        <span class="xp">+${XP_BY_STAR[m.difficulty]} XP</span>
+      </div>
+      <div class="title">${escapeHtml(m.title)}</div>
+    </div>
+  `).join('');
+}
+
+function openModal(id) {
+  const m = MISSIONS.find(x => x.id === id);
+  if (!m) return;
+  CURRENT_MISSION = m;
+  const subject = SUBJECTS.find(s => s.key === m.subject);
+  document.getElementById('m-subject').textContent = `${subject.icon} ${m.subject}`;
+  document.getElementById('m-stars').textContent = '★'.repeat(m.difficulty) + '☆'.repeat(5 - m.difficulty);
+  document.getElementById('m-xp').textContent = `+${XP_BY_STAR[m.difficulty]} XP`;
+  document.getElementById('m-title').textContent = m.title;
+  document.getElementById('m-id').textContent = m.id;
+  document.getElementById('copy-status').textContent = '';
+
+  const cfg = window.MZ_CONFIG;
+  const formReady = cfg.FORM_URL && !cfg.FORM_URL.includes('PUT_YOUR');
+  const submitLink = document.getElementById('m-submit');
+  if (formReady) {
+    submitLink.href = cfg.FORM_URL;
+  } else {
+    submitLink.style.opacity = '0.5';
+    submitLink.removeAttribute('href');
+  }
+  document.getElementById('modal-backdrop').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal-backdrop').classList.remove('show');
+}
+
+function copyId() {
+  if (!CURRENT_MISSION) return;
+  navigator.clipboard.writeText(CURRENT_MISSION.id).then(() => {
+    document.getElementById('copy-status').textContent = '✓ コピーしました';
+    setTimeout(() => {
+      document.getElementById('copy-status').textContent = '';
+    }, 2000);
+  });
+}
+
+document.getElementById('modal-backdrop').addEventListener('click', (e) => {
+  if (e.target.id === 'modal-backdrop') closeModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
 </script>
 </body>
 </html>
