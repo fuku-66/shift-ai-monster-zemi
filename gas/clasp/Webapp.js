@@ -17,7 +17,7 @@
  */
 
 const XP_BY_STAR_OUTPUT = { 1: 15, 2: 25, 3: 40, 4: 60, 5: 80 };
-const XP_BY_STAR_RESULT = { 1: 45, 2: 75, 3: 120, 4: 180, 5: 240 };
+const XP_RESULT_FIXED = 120; // 成果報告は難易度なしで一律
 const SHEET_LOG = '提出ログ';
 
 const EVOLUTION = [
@@ -79,9 +79,11 @@ function ensureResultForm_(forceRebuild) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const form = FormApp.create('🏆 SHIFT AI ジュニア 成果報告フォーム');
   form.setDescription(
-    '🏆 成果報告（XP×3倍）\n\n' +
+    '🏆 成果報告（一律 +120 XP）\n\n' +
     'コンテスト入賞・受賞・成績アップ・点数アップ・採用などの実績を報告できます。\n' +
-    '通常の成果物提出（AIで作ったもの）は別フォームから提出してね。'
+    '通常の成果物提出（AIで作ったもの）は別フォームから提出してね。\n\n' +
+    '⚠️ 入力した内容はDiscordに表示されます。\n' +
+    '個人情報（フルネーム・住所・学校名のフルネーム・電話番号など）は伏せて書いてね。'
   );
   form.setCollectEmail(true);
 
@@ -93,7 +95,7 @@ function ensureResultForm_(forceRebuild) {
   // 2. タイトル（何の成果か）
   form.addParagraphTextItem()
     .setTitle('タイトル（何の成果か）')
-    .setHelpText('例: 「英検3級合格」「学校絵画展で金賞」「数学テスト80点→90点」')
+    .setHelpText('例: 「英検3級合格」「校内絵画展で金賞」「数学テスト80点→90点」')
     .setRequired(true);
 
   // 3. 教科
@@ -103,14 +105,7 @@ function ensureResultForm_(forceRebuild) {
     .setChoiceValues(['AI基礎', '英語', '数学', '勉強法', 'クリエイティブ'])
     .setRequired(true);
 
-  // 4. 難易度（自己申告）
-  form.addMultipleChoiceItem()
-    .setTitle('⭐ 難易度（自己申告）')
-    .setHelpText('★1=やさしい / ★3=ふつう / ★5=チャレンジ。自己評価で選んでね')
-    .setChoiceValues(['★1 やさしい', '★2', '★3 ふつう', '★4', '★5 チャレンジ'])
-    .setRequired(true);
-
-  // 5. 成果の種類
+  // 4. 成果の種類
   form.addMultipleChoiceItem()
     .setTitle('🏅 成果の種類')
     .setHelpText('一番近いものを選んでね')
@@ -121,27 +116,32 @@ function ensureResultForm_(forceRebuild) {
     .showOtherOption(true)
     .setRequired(true);
 
-  // 6. 経緯・詳細
+  // 5. 成果の内容
   form.addParagraphTextItem()
-    .setTitle('経緯・詳細')
-    .setHelpText('どんな取り組みで達成したか・使ったAI・工夫した点・期間など')
+    .setTitle('成果の内容')
+    .setHelpText(
+      'どんな取り組みで達成したか・使ったAI・工夫した点・期間など。\n\n' +
+      '⚠️ ここに書いた内容は外部（Discord・サイトのアーカイブ）に表示されます。\n' +
+      'フルネーム・住所・学校名フルネーム・写真の顔などは伏せて書いてね。'
+    )
     .setRequired(true);
 
-  // 7. 証拠ファイル
+  // 6. 参考ファイル
   try {
     form.addFileUploadItem()
-      .setTitle('証拠ファイル（任意・賞状の写真・成績表・受賞ページのスクショなど）')
+      .setTitle('参考ファイル（任意・賞状の写真・成績表・受賞ページのスクショなど）')
+      .setHelpText('個人情報が写り込んでいる部分はモザイク・トリミングで隠してね')
       .setRequired(false);
   } catch (e) {
     Logger.log('ファイルアップロード追加に失敗: ' + e);
   }
 
-  // 8. 証拠URL
+  // 7. 参考URL
   form.addTextItem()
-    .setTitle('証拠URL（任意）')
-    .setHelpText('受賞ページ・コンテスト結果ページのリンクなど。あると説得力UP');
+    .setTitle('参考URL（任意）')
+    .setHelpText('受賞ページ・コンテスト結果ページのリンクなど');
 
-  // 9. ひとこと
+  // 8. ひとこと
   form.addParagraphTextItem()
     .setTitle('ひとこと・質問（任意）');
 
@@ -502,7 +502,7 @@ function buildSiteState_() {
       subject   = subjectFromId_(missionId);
       difficulty = difficultyFromId_(missionId);
     }
-    const xp = (isResult ? XP_BY_STAR_RESULT : XP_BY_STAR_OUTPUT)[difficulty] || 0;
+    const xp = isResult ? XP_RESULT_FIXED : (XP_BY_STAR_OUTPUT[difficulty] || 0);
 
     return {
       id:           'r-' + rowIndex,
@@ -608,7 +608,7 @@ function onFormSubmit(e) {
     const subjectStr   = pickFirst('教科');
     const diffStr      = pickFirst('難易度');
     const resultType   = pickFirst('成果の種類');
-    const content      = pickFirst('提出内容') || pickFirst('経緯');
+    const content      = pickFirst('提出内容') || pickFirst('成果の内容') || pickFirst('経緯');
     const isResult     = isResultSubmission_(categoryRaw, resultType);
 
     // 教科・難易度を確定
@@ -626,7 +626,7 @@ function onFormSubmit(e) {
       difficulty = difficultyFromId_(missionId);
       missionTitle = extractMissionTitle_(missionField) || missionField;
     }
-    const xpGained = (isResult ? XP_BY_STAR_RESULT : XP_BY_STAR_OUTPUT)[difficulty] || 0;
+    const xpGained = isResult ? XP_RESULT_FIXED : (XP_BY_STAR_OUTPUT[difficulty] || 0);
 
     // 提出時点で「承認」をTRUEにする（即時XP加算）
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -681,15 +681,15 @@ function buildResultPayload_(nickname, title, subject, stars, xp, resultType, ex
   return {
     username: '🥚 モンスターの書',
     embeds: [{
-      title: '🏆 成果報告！ +' + xp + ' XP（成果ボーナス×3）',
+      title: '🏆 成果報告！ +' + xp + ' XP（成果ボーナス）',
       description:
         '🎉 **' + nickname + '** さんが成果を達成しました！\n\n' +
         '🏆 **' + title + '**\n' +
         (resultType ? '🏅 ' + resultType + '\n' : '') +
-        '📚 ' + subject + '　' + stars,
+        '📚 ' + subject,
       color: 0xF1C40F,
       fields: [
-        { name: '📝 経緯（抜粋）', value: excerpt || '(内容なし)', inline: false },
+        { name: '📝 成果の内容（抜粋）', value: excerpt || '(内容なし)', inline: false },
         { name: '現在のモンスター', value: 'Lv.' + state.lv + ' ' + (state.monsterName || 'タマゴ'), inline: true },
         { name: '累積XP',           value: String(state.totalXp) + ' XP',                           inline: true },
       ],
@@ -739,7 +739,7 @@ function onApprovalEdit(e) {
       subject = subjectFromId_(missionId);
       difficulty = difficultyFromId_(missionId);
     }
-    const xp = (isResult ? XP_BY_STAR_RESULT : XP_BY_STAR_OUTPUT)[difficulty] || 0;
+    const xp = isResult ? XP_RESULT_FIXED : (XP_BY_STAR_OUTPUT[difficulty] || 0);
 
     const payload = {
       username: '🥚 モンスターの書',

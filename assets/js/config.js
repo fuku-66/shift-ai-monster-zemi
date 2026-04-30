@@ -7,7 +7,7 @@ window.MZ_CONFIG = {
   // 📦 成果物用フォーム（25課題の提出）
   FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSeAiK5wkLzpEpZuzdkTdp5-PFzvXD1kqb5pSU4Sj9LTIcVWZw/viewform',
   // 🏆 成果報告用フォーム（受賞・点数アップ等）
-  FORM_URL_RESULT: 'https://docs.google.com/forms/d/e/1FAIpQLSdgpi-4JtvMSWAcnSDKeZyv4T7KzSBefTybMwcu_FnFOjInoA/viewform',
+  FORM_URL_RESULT: 'https://docs.google.com/forms/d/e/1FAIpQLScJZij90u8dej0H__wUlXmJbOlMh40H7pDBpoUw28Zyeb_otw/viewform',
 
   EVOLUTION: [
     { lv: 1, name: 'タマゴ', xpStart: 0,    monsterKey: 'egg' },
@@ -24,9 +24,9 @@ window.MZ_CONFIG = {
     { key: 'creative', label: 'クリエイティブ', color: '#F06292' },
   ],
 
-  // カテゴリ別XP定義（成果は3倍）
+  // カテゴリ別XP定義
   XP_BY_STAR_OUTPUT: { 1: 15, 2: 25, 3: 40, 4: 60, 5: 80 },
-  XP_BY_STAR_RESULT: { 1: 45, 2: 75, 3: 120, 4: 180, 5: 240 },
+  XP_RESULT_FIXED: 120, // 成果報告は難易度なしで一律
 
   // 成果の種類
   RESULT_TYPES: [

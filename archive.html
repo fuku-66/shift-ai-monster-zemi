@@ -113,7 +113,7 @@
             ${catBadge}${resultTypeBadge}
             <span class="recent-date">${r.date || ''}</span>
             <span class="recent-subject">${r.subject || ''}</span>
-            <span>${'★'.repeat(r.difficulty || 1)}${'☆'.repeat(5 - (r.difficulty || 1))}</span>
+            ${cat === 'result' ? '' : `<span>${'★'.repeat(r.difficulty || 1)}${'☆'.repeat(5 - (r.difficulty || 1))}</span>`}
             <span class="recent-xp">+${r.xp || 15} XP</span>
           </div>
           <div class="recent-name">${escapeHtml(r.name || 'ゲスト')}</div>
