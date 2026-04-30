@@ -1,284 +1,613 @@
 /**
- * 🐲 SHIFT AI ジュニア ドラゴン育成サイト
+ * 🥚 SHIFT AI ジュニア モンスター育成プロジェクト
  * ============================================================
- * WebApp 本体（サイト向けJSON API + 承認トリガー + いいね）
+ * WebApp 本体（5軸XP集計 + 即時XP加算 + 2カテゴリ対応）
  * ============================================================
  *
- * 対応エンドポイント:
- *   GET  ... doGet(e)  → サイト表示用のステータス取得
- *   POST ... doPost(e) → いいね送信
+ * セットアップ:
+ *   1. このスクリプトを「提出ログ」スプシにバインドする
+ *   2. ScriptProperties に DISCORD_WEBHOOK_URL を設定
+ *   3. setupSheet() を1回手動実行（ヘッダー＆チェックボックス自動化）
+ *   4. installAllTriggers() を1回手動実行
+ *   5. 「ウェブアプリ」としてデプロイ → URLをサイトのconfig.jsに貼る
  *
- * トリガー:
- *   onApprovalEdit(e) → スプシの「承認」列にTRUEで発火
- *     - +20XP
- *     - Discord通知
- *
- * 初回のみ: installApprovalTrigger() を手動実行してトリガーを登録する
+ * カテゴリ:
+ *   📦 成果物 (output): 既存25課題から選択 / mission ID = m-{教科}{難易度}
+ *   🏆 成果   (result): フリー報告枠 / mission ID = r-{教科}{難易度} / XP×3倍
  */
 
-// 難易度別XPテーブル（★1=15 / ★2=25 / ★3=40 / ★4=60 / ★5=80）
-const XP_BY_STAR = { 1: 15, 2: 25, 3: 40, 4: 60, 5: 80 };
+const XP_BY_STAR_OUTPUT = { 1: 15, 2: 25, 3: 40, 4: 60, 5: 80 };
+const XP_BY_STAR_RESULT = { 1: 45, 2: 75, 3: 120, 4: 180, 5: 240 };
 const SHEET_LOG = '提出ログ';
-const SHEET_SETUP = '設定';
 
-/**
- * 課題IDから難易度（星）を抽出
- * ID規則: m-X0D （X=教科、D=難易度1-5）
- * 例: m-e01 → 1 / m-j05 → 5
- */
-function difficultyFromId_(id) {
-  const last = String(id || '').slice(-1);
-  const n = parseInt(last, 10);
-  return (n >= 1 && n <= 5) ? n : 1;
-}
-function xpForMission_(id) {
-  return XP_BY_STAR[difficultyFromId_(id)] || 15;
-}
+const EVOLUTION = [
+  { lv: 1, name: 'タマゴ',         xpStart: 0,    monsterKey: 'egg' },
+  { lv: 2, name: 'ヒナ',           xpStart: 200,  monsterKey: 'hatchling' },
+  { lv: 3, name: '子モンスター',    xpStart: 600,  monsterKey: 'baby' },
+  { lv: 4, name: '最終形態',        xpStart: 1500, monsterKey: 'final' },
+];
+
+const SUBJECT_MAP = { 'a': 'AI基礎', 'e': '英語', 'm': '数学', 's': '勉強法', 'c': 'クリエイティブ' };
+const SUBJECT_TO_CODE = { 'AI基礎': 'a', '英語': 'e', '数学': 'm', '勉強法': 's', 'クリエイティブ': 'c' };
+const AXIS_KEY    = { 'AI基礎': 'ai', '英語': 'eng', '数学': 'math', '勉強法': 'study', 'クリエイティブ': 'creative' };
+const MONSTER_BY_AXIS = {
+  ai:       { baby: '子サイバービースト',   final: 'サイバービースト' },
+  eng:      { baby: '子フェニックス',       final: 'フェニックス' },
+  math:     { baby: '子クリスタルゴーレム', final: 'クリスタルゴーレム' },
+  study:    { baby: '子シャドウウルフ',     final: 'シャドウウルフ' },
+  creative: { baby: '子レインボードラゴン', final: 'レインボードラゴン' },
+  balance:  { baby: '子ユニコーン',         final: 'ユニコーン神獣' },
+};
+const BALANCE_THRESHOLD = 10;
 
 /* ================================================================
-   GET: サイト表示用のステータス JSON を返す
+   GET: サイト用JSON
    ================================================================ */
 function doGet(e) {
   try {
-    const data = buildSiteState_();
-    return ContentService
-      .createTextOutput(JSON.stringify(data))
-      .setMimeType(ContentService.MimeType.JSON);
+    const action = (e && e.parameter && e.parameter.action) || '';
+    if (action === 'createForm')  return jsonOut_(ensureSubmitForm_());
+    if (action === 'rebuildForm') return jsonOut_(ensureSubmitForm_(true));
+    if (action === 'formInfo')    return jsonOut_(getFormInfo_());
+    return jsonOut_(buildSiteState_());
   } catch (err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ error: String(err) }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return jsonOut_({ error: String(err) });
   }
 }
 
-/* ================================================================
-   POST: いいねの加算・削除
-   受信: { action: "like", id: "r-5", delta: 1 | -1 }
-   ================================================================ */
-function doPost(e) {
+function jsonOut_(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getFormInfo_() {
+  const props = PropertiesService.getScriptProperties();
+  const formId = props.getProperty('FORM_ID');
+  if (!formId) return { ok: false, message: 'FORM not created yet' };
   try {
-    const body = e && e.postData ? JSON.parse(e.postData.contents || '{}') : {};
-    if (body.action === 'like') {
-      toggleLike_(body.id, Number(body.delta) || 1);
-      return ContentService
-        .createTextOutput(JSON.stringify({ ok: true }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    return ContentService
-      .createTextOutput(JSON.stringify({ ok: false, error: 'unknown action' }))
-      .setMimeType(ContentService.MimeType.JSON);
+    const f = FormApp.openById(formId);
+    const items = f.getItems();
+
+    // toPrefilledUrl()でprefillエントリーIDを抽出
+    const SAMPLES = {
+      'ニックネーム':   '__NICK__',
+      '挑戦した課題':   '__MISSION__',
+      'タイトル':       '__TITLE__',
+      '提出内容':       '__CONTENT__',
+      '参考URL':        '__URL__',
+      'ひとこと':       '__COMMENT__',
+    };
+    const response = f.createResponse();
+    items.forEach(it => {
+      try {
+        const title = it.getTitle();
+        let key = null;
+        Object.keys(SAMPLES).forEach(k => { if (title.indexOf(k) >= 0) key = k; });
+        if (!key) return;
+        const type = it.getType();
+        if (type === FormApp.ItemType.TEXT) {
+          response.withItemResponse(it.asTextItem().createResponse(SAMPLES[key]));
+        } else if (type === FormApp.ItemType.PARAGRAPH_TEXT) {
+          response.withItemResponse(it.asParagraphTextItem().createResponse(SAMPLES[key]));
+        }
+      } catch (e) {}
+    });
+    const prefilledUrl = response.toPrefilledUrl();
+
+    // entry IDマッピング
+    const entries = {};
+    const labelMap = {
+      'ニックネーム':   'nickname',
+      '挑戦した課題':   'mission',
+      'タイトル':       'title',
+      '提出内容':       'content',
+      '参考URL':        'url',
+      'ひとこと':       'comment',
+    };
+    Object.keys(SAMPLES).forEach(label => {
+      const sample = SAMPLES[label];
+      const re = new RegExp('(entry\\.\\d+)=' + sample);
+      const m = prefilledUrl.match(re);
+      if (m) entries[labelMap[label]] = m[1];
+    });
+
+    // カテゴリ・教科・難易度のentry IDも抽出（ラジオ/プルダウン）
+    items.forEach(it => {
+      try {
+        const title = it.getTitle();
+        const type = it.getType();
+        const id = 'entry.' + it.getId();
+        if (title.indexOf('カテゴリ') >= 0) entries.category = id;
+        else if (title.indexOf('教科') >= 0) entries.subject = id;
+        else if (title.indexOf('難易度') >= 0) entries.difficulty = id;
+        else if (title.indexOf('成果の種類') >= 0) entries.resultType = id;
+      } catch (e) {}
+    });
+
+    return {
+      ok: true,
+      formUrl: f.getPublishedUrl(),
+      entries,
+      prefilledUrl,
+    };
   } catch (err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return { ok: false, message: String(err) };
   }
 }
 
+function ensureSubmitForm_(forceRebuild) {
+  const props = PropertiesService.getScriptProperties();
+  const existingId = props.getProperty('FORM_ID');
+  if (existingId && !forceRebuild) {
+    try {
+      const f = FormApp.openById(existingId);
+      return { ok: true, formUrl: f.getPublishedUrl(), editUrl: f.getEditUrl(), reused: true };
+    } catch (err) {
+      props.deleteProperty('FORM_ID');
+    }
+  }
+  if (existingId && forceRebuild) {
+    try { DriveApp.getFileById(existingId).setTrashed(true); } catch (e) {}
+    props.deleteProperty('FORM_ID');
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const form = FormApp.create('SHIFT AI ジュニア 提出フォーム');
+  form.setDescription(
+    '📦 成果物 = 自分で作ったもの（AI画像・文章・スライド・コードなど）\n' +
+    '🏆 成果   = 結果として得た実績（受賞・点数アップ・採用など / XP×3倍）\n\n' +
+    '迷ったら: 「自分で作った」→成果物 / 「外から評価された」→成果'
+  );
+  form.setCollectEmail(true);
+
+  // 1. ニックネーム
+  form.addTextItem()
+    .setTitle('ニックネーム（Discordと同じ名前）')
+    .setRequired(true);
+
+  // 2. カテゴリ
+  form.addMultipleChoiceItem()
+    .setTitle('📋 カテゴリ')
+    .setHelpText(
+      '📦 成果物 = 自分で作ったもの（AI画像・文章・デザイン・スライド・動画など）\n' +
+      '🏆 成果   = 結果・実績（コンテスト入賞・受賞・成績アップ・点数アップ・採用など）\n\n' +
+      '例:「ChatGPTで描いた絵」→📦 成果物\n' +
+      '例:「数学のテスト80点→90点」→🏆 成果\n' +
+      '例:「コンテストで佳作」→🏆 成果'
+    )
+    .setChoiceValues(['📦 成果物', '🏆 成果'])
+    .setRequired(true);
+
+  // 3. 挑戦した課題 / タイトル（成果物のみ自動入力・成果は手入力）
+  form.addParagraphTextItem()
+    .setTitle('挑戦した課題 / タイトル')
+    .setHelpText(
+      '📦 成果物の場合: サイトから「📝 提出する」を押すと自動入力されます\n' +
+      '🏆 成果の場合: 何の成果か書いてください（例: 「英検3級合格」「学校絵画展で金賞」）'
+    )
+    .setRequired(true);
+
+  // 4. 教科（成果のとき必要 / 成果物は自動判別だが念のため確認）
+  form.addMultipleChoiceItem()
+    .setTitle('📚 教科')
+    .setHelpText('🏆 成果の場合は5教科から選択 / 📦 成果物は自動判別なので任意')
+    .setChoiceValues(['AI基礎', '英語', '数学', '勉強法', 'クリエイティブ'])
+    .setRequired(false);
+
+  // 5. 難易度（成果のとき必要）
+  form.addMultipleChoiceItem()
+    .setTitle('⭐ 難易度（自己申告）')
+    .setHelpText('🏆 成果の場合のみ選択。📦 成果物は課題に紐づくので不要')
+    .setChoiceValues(['★1 やさしい', '★2', '★3 ふつう', '★4', '★5 チャレンジ'])
+    .setRequired(false);
+
+  // 6. 成果の種類
+  form.addMultipleChoiceItem()
+    .setTitle('🏅 成果の種類（成果のときのみ）')
+    .setHelpText('一番近いものを選んでください')
+    .setChoiceValues([
+      'コンテスト入賞', '受賞', '外部評価', '採用実績',
+      '成績アップ', '点数アップ', 'その他',
+    ])
+    .showOtherOption(true)
+    .setRequired(false);
+
+  // 7. 提出内容
+  form.addParagraphTextItem()
+    .setTitle('提出内容')
+    .setHelpText(
+      '📦 成果物: AIとのやりとり・気づき・スクショの説明など\n' +
+      '🏆 成果: どんな経緯で達成したか・使ったAI・工夫した点など'
+    )
+    .setRequired(true);
+
+  // 8. ファイルアップロード
+  try {
+    form.addFileUploadItem()
+      .setTitle('提出ファイル（画像・PDF・スクショ等／任意）')
+      .setHelpText('スクショ・PDF・作品ファイル・賞状の写真などを添付できます')
+      .setRequired(false);
+  } catch (e) {
+    Logger.log('ファイルアップロード追加に失敗: ' + e);
+  }
+
+  // 9. 参考URL
+  form.addTextItem()
+    .setTitle('参考URL（任意）')
+    .setHelpText('🏆 成果の場合は証拠URL（受賞ページ・スプシリンクなど）を入れると説得力UP（任意）');
+
+  // 10. ひとこと
+  form.addParagraphTextItem().setTitle('ひとこと・質問（任意）');
+
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
+  props.setProperty('FORM_ID', form.getId());
+  return { ok: true, formUrl: form.getPublishedUrl(), editUrl: form.getEditUrl(), reused: false };
+}
+
+function rebuildSubmitForm() {
+  const r = ensureSubmitForm_(true);
+  Logger.log('REBUILT FORM_URL: ' + r.formUrl);
+  try {
+    SpreadsheetApp.getUi().alert(
+      '✅ フォーム再構築完了\n\n' +
+      '📋 新しい提出URL:\n' + r.formUrl + '\n\n' +
+      '✏️ 編集URL:\n' + r.editUrl
+    );
+  } catch (e) {}
+  return r;
+}
+
 /* ================================================================
-   サイト表示用データをスプシから組み立てる
+   サイト表示用データを組み立てる
    ================================================================ */
+function findLogSheet_(ss) {
+  let best = ss.getSheetByName(SHEET_LOG);
+  if (!best || best.getLastRow() < 1) {
+    const all = ss.getSheets();
+    let max = 0;
+    all.forEach(sh => {
+      if (sh.isSheetHidden()) return;
+      if (sh.getName().indexOf('フォームの回答') === 0 && sh.getLastRow() > max) {
+        max = sh.getLastRow();
+        best = sh;
+      }
+    });
+  }
+  if (best) ensureApprovalCols_(best);
+  return best;
+}
+
+function ensureApprovalCols_(sh) {
+  if (sh.getLastColumn() === 0) return;
+  const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  // 承認列を「☑=有効」「□=取消」として運用
+  ['承認', 'フィードバック', '通知済'].forEach(c => {
+    if (header.indexOf(c) === -1) {
+      const newCol = sh.getLastColumn() + 1;
+      sh.getRange(1, newCol).setValue(c);
+      sh.getRange(1, newCol).setFontWeight('bold').setBackground('#F1C40F');
+      if (c === '承認' || c === '通知済') {
+        const cb = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+        sh.getRange(2, newCol, Math.max(sh.getMaxRows() - 1, 1), 1).setDataValidation(cb);
+        // 承認列は提出時にデフォルトTRUEを入れる（即時XP加算ロジック）
+      }
+    }
+  });
+}
+
+function findCol_(header, name) {
+  let idx = header.indexOf(name);
+  if (idx >= 0) return idx;
+  idx = header.findIndex(h => String(h).indexOf(name) >= 0);
+  return idx;
+}
+
 function buildSiteState_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(SHEET_LOG);
-  if (!sh) return { totalXp: 0, totalSubmissions: 0, totalMembers: 0, recent: [], all: [] };
+  const sh = findLogSheet_(ss);
+  const empty = { stats: zeroStats_(), totalXp: 0, totalSubmissions: 0, totalMembers: 0, lv: 1, monster: 'egg', recent: [], all: [] };
+  if (!sh) return empty;
 
   const lastRow = sh.getLastRow();
-  if (lastRow < 2) return { totalXp: 0, totalSubmissions: 0, totalMembers: 0, recent: [], all: [] };
+  if (lastRow < 2) return empty;
 
   const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
   const rows   = sh.getRange(2, 1, lastRow - 1, sh.getLastColumn()).getValues();
+  const col = (name) => findCol_(header, name);
 
-  const col = (name) => header.indexOf(name);
   const iTimestamp = col('タイムスタンプ');
   const iNickname  = col('ニックネーム');
+  const iCategory  = col('カテゴリ');
   const iMission   = col('挑戦した課題');
+  const iSubject   = col('教科');
+  const iDifficulty = col('難易度');
+  const iResultType = col('成果の種類');
   const iContent   = col('提出内容');
-  const iUrl       = col('参考URL（任意）');
-  const iComment   = col('ひとこと・質問（任意）');
+  const iUrl       = col('参考URL');
+  const iComment   = col('ひとこと');
   const iEmail     = col('メールアドレス');
   const iApproved  = col('承認');
-  const iXpDone    = col('通知済') >= 0 ? col('通知済') : col('XP加算済');
-  const iLikes     = col('いいね数');
 
   const items = rows.map((r, idx) => {
     const rowIndex = idx + 2;
-    const mTitleWithId = String(r[iMission] || '');
-    const missionId    = extractMissionId_(mTitleWithId);
-    const missionTitle = extractMissionTitle_(mTitleWithId);
-    const subject      = subjectFromId_(missionId);
-    const difficulty = difficultyFromId_(missionId);
+    const mField    = String(r[iMission] || '');
+    const categoryRaw = iCategory >= 0 ? String(r[iCategory] || '') : '';
+    const isResult = categoryRaw.indexOf('成果') >= 0 && categoryRaw.indexOf('成果物') < 0;
+    const category = isResult ? 'result' : 'output';
+
+    let missionId, subject, difficulty;
+    if (isResult) {
+      // 成果: 自己申告の教科・難易度を使う
+      const subjectStr = iSubject >= 0 ? String(r[iSubject] || '').trim() : '';
+      const diffStr = iDifficulty >= 0 ? String(r[iDifficulty] || '').trim() : '';
+      const diffNum = parseInt((diffStr.match(/[1-5]/) || ['1'])[0], 10);
+      const subjCode = SUBJECT_TO_CODE[subjectStr] || 'a';
+      missionId = 'r-' + subjCode + '0' + diffNum;
+      subject = subjectStr || subjectFromId_(missionId);
+      difficulty = diffNum;
+    } else {
+      missionId = extractMissionId_(mField);
+      subject   = subjectFromId_(missionId);
+      difficulty = difficultyFromId_(missionId);
+    }
+    const xp = (isResult ? XP_BY_STAR_RESULT : XP_BY_STAR_OUTPUT)[difficulty] || 0;
+
     return {
       id:           'r-' + rowIndex,
       date:         formatDate_(r[iTimestamp]),
       name:         r[iNickname] || '',
-      email:        r[iEmail] || '',
+      email:        iEmail >= 0 ? r[iEmail] || '' : '',
+      category:     category,
       subject:      subject,
       missionId:    missionId,
-      missionTitle: missionTitle || mTitleWithId,
+      missionTitle: extractMissionTitle_(mField) || mField,
       difficulty:   difficulty,
-      xp:           XP_BY_STAR[difficulty] || 15,
+      xp:           xp,
+      resultType:   iResultType >= 0 ? r[iResultType] || '' : '',
       content:      r[iContent] || '',
-      url:          r[iUrl] || '',
-      comment:      r[iComment] || '',
-      likes:        Number(r[iLikes]) || 0,
-      approved:     isTruthy_(r[iApproved]),
-      xpAdded:      isTruthy_(r[iXpDone]),
+      url:          iUrl >= 0 ? r[iUrl] || '' : '',
+      comment:      iComment >= 0 ? r[iComment] || '' : '',
+      approved:     iApproved >= 0 ? isTruthy_(r[iApproved]) : true,  // 承認列なし=自動承認
     };
   });
 
   const approved = items.filter(x => x.approved);
-  const totalXp = approved.reduce((sum, x) => sum + (x.xp || 15), 0);
-  const members = new Set(approved.map(x => x.email || x.name)).size;
-  const recent  = approved.slice().sort((a, b) => (b.date > a.date ? 1 : -1)).slice(0, 5);
+  const stats = zeroStats_();
+  approved.forEach(x => {
+    const k = AXIS_KEY[x.subject];
+    if (k) stats[k] += x.xp;
+  });
+
+  const totalXp = stats.ai + stats.eng + stats.math + stats.study + stats.creative;
+  const lvInfo  = calcLv_(totalXp);
+  const dom     = determineMonster_(stats, lvInfo.lv);
 
   return {
+    stats: stats,
     totalXp: totalXp,
     totalSubmissions: approved.length,
-    totalMembers: members,
-    recent: recent,
-    all: approved.slice().sort((a, b) => (b.date > a.date ? 1 : -1)),
+    totalMembers: new Set(approved.map(x => x.email || x.name)).size,
+    lv: lvInfo.lv,
+    lvName: lvInfo.name,
+    monster: dom.monsterKey,
+    monsterName: dom.monsterName,
+    dominantAxis: dom.axis,
+    isBalance: dom.isBalance,
+    recent: approved.slice().sort((a, b) => (b.date > a.date ? 1 : -1)).slice(0, 5),
+    all:    approved.slice().sort((a, b) => (b.date > a.date ? 1 : -1)),
   };
 }
 
-/* ================================================================
-   承認トリガー: 「承認」列に TRUE が入ったら発火
-   ================================================================ */
-function onApprovalEdit(e) {
-  try {
-    const sh = e.source.getActiveSheet();
-    if (sh.getName() !== SHEET_LOG) return;
+function zeroStats_() {
+  return { ai: 0, eng: 0, math: 0, study: 0, creative: 0 };
+}
 
-    const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
-    const iApproved = header.indexOf('承認') + 1;
-    // "通知済" を優先、旧"XP加算済"にも後方互換
-    let iNotified = header.indexOf('通知済') + 1;
-    if (iNotified < 1) iNotified = header.indexOf('XP加算済') + 1;
-    if (iApproved < 1 || iNotified < 1) return;
+function determineMonster_(stats, lv) {
+  if (lv === 1) return { axis: null, monsterKey: 'egg',       monsterName: 'タマゴ', isBalance: false };
+  if (lv === 2) return { axis: null, monsterKey: 'hatchling', monsterName: 'ヒナ',   isBalance: false };
 
-    const editedCol = e.range.getColumn();
-    const row = e.range.getRow();
-    if (row < 2) return;
-    if (editedCol !== iApproved) return; // 承認列以外は無視（差し戻し通知なし）
+  const keys = ['ai', 'eng', 'math', 'study', 'creative'];
+  const values = keys.map(k => stats[k]);
+  const max = Math.max.apply(null, values);
+  const min = Math.min.apply(null, values);
+  const isBalance = (max - min) <= BALANCE_THRESHOLD && max > 0;
 
-    // 承認☑にしたときだけ通知（重複防止）
-    const val = isTruthy_(e.value);
-    if (!val) return;
-    const alreadyNotified = isTruthy_(sh.getRange(row, iNotified).getValue());
-    if (alreadyNotified) return;
-
-    sh.getRange(row, iNotified).setValue(true);
-    notifyApproval_(sh, row, header);
-  } catch (err) {
-    Logger.log('onApprovalEdit error: ' + err);
+  let axis;
+  if (isBalance) {
+    axis = 'balance';
+  } else {
+    const idx = values.indexOf(max);
+    axis = keys[idx];
   }
-}
 
-function notifyApproval_(sh, row, header) {
-  const vals = sh.getRange(row, 1, 1, header.length).getValues()[0];
-  const pick = (name) => vals[header.indexOf(name)];
-  const nickname = pick('ニックネーム') || 'ゲスト';
-  const mission  = pick('挑戦した課題') || '';
-  const missionId = extractMissionId_(mission);
-  const subject  = subjectFromId_(missionId);
-  const difficulty = difficultyFromId_(missionId);
-  const xpGained = XP_BY_STAR[difficulty] || 15;
-  const stars = '★'.repeat(difficulty) + '☆'.repeat(5 - difficulty);
-  const state    = buildSiteState_();
-  const lvInfo   = calcLv_(state.totalXp);
-
-  const payload = {
-    username: '🐲 ドラゴンの書',
-    embeds: [{
-      title: '✅ 提出を承認しました！ +' + xpGained + ' XP',
-      description:
-        '**' + nickname + '** さんの提出が承認されました🔥\n\n' +
-        '📝 ' + mission + '\n' +
-        '📚 ' + subject + '　' + stars,
-      color: 0xF1C40F,
-      fields: [
-        { name: '現在のドラゴン', value: 'Lv.' + lvInfo.lv + ' ' + lvInfo.name, inline: true },
-        { name: '累積XP',         value: String(state.totalXp) + ' XP',         inline: true },
-        { name: '総提出数',        value: String(state.totalSubmissions) + '件', inline: true },
-      ],
-      footer: { text: 'SHIFT AIジュニア ドラゴン育成プロジェクト' },
-      timestamp: new Date().toISOString(),
-    }],
+  const stage = lv === 3 ? 'baby' : 'final';
+  return {
+    axis: axis,
+    monsterKey: axis + '-' + stage,
+    monsterName: MONSTER_BY_AXIS[axis][stage],
+    isBalance: isBalance,
   };
-  sendDiscord_(payload);
 }
 
-// 差し戻し通知は中高生向けのUX配慮で削除（誤チェック外しで通知されないため）
-// フィードバック欄はmariko個人の覚え書き用として残す
+function calcLv_(xp) {
+  let cur = EVOLUTION[0];
+  for (const e of EVOLUTION) if (xp >= e.xpStart) cur = e;
+  return cur;
+}
 
 /* ================================================================
-   フォーム送信時のDiscord通知
+   フォーム送信時: 即時XP加算 + Discord通知（カテゴリ別）
    ================================================================ */
 function onFormSubmit(e) {
   try {
     if (!e || !e.namedValues) return;
     const data = e.namedValues;
     const pickFirst = (name) => {
-      const v = data[name];
-      return v && v[0] ? v[0] : '';
+      // 部分一致でキーを探す
+      const keys = Object.keys(data);
+      const k = keys.find(k => k.indexOf(name) >= 0);
+      return (k && data[k][0]) ? data[k][0] : '';
     };
-    const nickname     = pickFirst('ニックネーム') || 'ゲスト';
-    const missionField = pickFirst('挑戦した課題') || '';
-    const missionId    = extractMissionId_(missionField);
-    const missionTitle = extractMissionTitle_(missionField) || missionField;
-    const subject      = subjectFromId_(missionId);
-    const difficulty   = difficultyFromId_(missionId);
-    const stars        = '★'.repeat(difficulty) + '☆'.repeat(5 - difficulty);
-    const content      = pickFirst('提出内容') || '';
-    const excerpt      = content.length > 120 ? content.substring(0, 120) + '…' : content;
-    const xpPotential  = XP_BY_STAR[difficulty] || 15;
 
-    const payload = {
-      username: '🐲 ドラゴンの書',
-      embeds: [{
-        title: '📥 新しい提出が届きました！',
-        description:
-          '**' + nickname + '** さんが提出してくれたよ📝\n\n' +
-          '📚 ' + missionTitle + '\n' +
-          subject + '　' + stars + '　承認で **+' + xpPotential + ' XP**',
-        color: 0x3498DB,
-        fields: [
-          { name: '📝 内容（抜粋）', value: excerpt || '(内容なし)', inline: false }
-        ],
-        footer: { text: '講師がチェック中...承認されたらドラゴンが育つよ🔥' },
-        timestamp: new Date().toISOString(),
-      }],
-    };
+    const nickname     = pickFirst('ニックネーム') || 'ゲスト';
+    const categoryRaw  = pickFirst('カテゴリ');
+    const isResult     = categoryRaw.indexOf('成果') >= 0 && categoryRaw.indexOf('成果物') < 0;
+    const missionField = pickFirst('挑戦した課題');
+    const subjectStr   = pickFirst('教科');
+    const diffStr      = pickFirst('難易度');
+    const resultType   = pickFirst('成果の種類');
+    const content      = pickFirst('提出内容');
+
+    // 教科・難易度を確定
+    let subject, difficulty, missionId, missionTitle;
+    if (isResult) {
+      subject = subjectStr || 'AI基礎';
+      const diffNum = parseInt((diffStr.match(/[1-5]/) || ['1'])[0], 10);
+      difficulty = diffNum;
+      const subjCode = SUBJECT_TO_CODE[subject] || 'a';
+      missionId = 'r-' + subjCode + '0' + diffNum;
+      missionTitle = missionField;
+    } else {
+      missionId = extractMissionId_(missionField);
+      subject = subjectFromId_(missionId);
+      difficulty = difficultyFromId_(missionId);
+      missionTitle = extractMissionTitle_(missionField) || missionField;
+    }
+    const xpGained = (isResult ? XP_BY_STAR_RESULT : XP_BY_STAR_OUTPUT)[difficulty] || 0;
+
+    // 提出時点で「承認」をTRUEにする（即時XP加算）
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sh = findLogSheet_(ss);
+    if (sh) {
+      ensureApprovalCols_(sh);
+      const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+      const iApproved = header.indexOf('承認') + 1;
+      const iNotified = header.indexOf('通知済') + 1;
+      const lastRow = sh.getLastRow();
+      if (iApproved > 0 && lastRow >= 2) {
+        sh.getRange(lastRow, iApproved).setValue(true);
+        if (iNotified > 0) sh.getRange(lastRow, iNotified).setValue(true);
+      }
+    }
+
+    const stars = '★'.repeat(difficulty) + '☆'.repeat(5 - difficulty);
+    const excerpt = content.length > 120 ? content.substring(0, 120) + '…' : content;
+    const state = buildSiteState_();
+
+    const payload = isResult
+      ? buildResultPayload_(nickname, missionTitle, subject, stars, xpGained, resultType, excerpt, state)
+      : buildOutputPayload_(nickname, missionTitle, subject, stars, xpGained, excerpt, state);
     sendDiscord_(payload);
-    Logger.log('提出通知送信: ' + nickname + ' - ' + missionTitle);
   } catch (err) {
     Logger.log('onFormSubmit error: ' + err);
   }
 }
 
-/* ================================================================
-   いいねトグル（doPostから呼ばれる）
-   ================================================================ */
-function toggleLike_(id, delta) {
-  if (!id || !id.startsWith('r-')) return;
-  const rowIdx = parseInt(id.slice(2), 10);
-  if (!rowIdx || rowIdx < 2) return;
+function buildOutputPayload_(nickname, title, subject, stars, xp, excerpt, state) {
+  return {
+    username: '🥚 モンスターの書',
+    embeds: [{
+      title: '📦 成果物の報告 +' + xp + ' XP',
+      description:
+        '**' + nickname + '** さんが成果物を提出！🎨\n\n' +
+        '📝 ' + title + '\n' +
+        '📚 ' + subject + '　' + stars,
+      color: 0x3498DB,
+      fields: [
+        { name: '📝 内容（抜粋）', value: excerpt || '(内容なし)', inline: false },
+        { name: '現在のモンスター', value: 'Lv.' + state.lv + ' ' + (state.monsterName || 'タマゴ'), inline: true },
+        { name: '累積XP',           value: String(state.totalXp) + ' XP',                           inline: true },
+      ],
+      footer: { text: 'SHIFT AIジュニア モンスター育成プロジェクト' },
+      timestamp: new Date().toISOString(),
+    }],
+  };
+}
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(SHEET_LOG);
-  const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
-  let iLikes = header.indexOf('いいね数');
-  if (iLikes < 0) {
-    iLikes = sh.getLastColumn();
-    sh.getRange(1, iLikes + 1).setValue('いいね数').setFontWeight('bold').setBackground('#FF6B9D').setFontColor('#FFFFFF');
-  }
-  const cell = sh.getRange(rowIdx, iLikes + 1);
-  const current = Number(cell.getValue()) || 0;
-  const next = Math.max(0, current + (delta > 0 ? 1 : -1));
-  cell.setValue(next);
+function buildResultPayload_(nickname, title, subject, stars, xp, resultType, excerpt, state) {
+  return {
+    username: '🥚 モンスターの書',
+    embeds: [{
+      title: '🏆 成果報告！ +' + xp + ' XP（成果ボーナス×3）',
+      description:
+        '🎉 **' + nickname + '** さんが成果を達成しました！\n\n' +
+        '🏆 **' + title + '**\n' +
+        (resultType ? '🏅 ' + resultType + '\n' : '') +
+        '📚 ' + subject + '　' + stars,
+      color: 0xF1C40F,
+      fields: [
+        { name: '📝 経緯（抜粋）', value: excerpt || '(内容なし)', inline: false },
+        { name: '現在のモンスター', value: 'Lv.' + state.lv + ' ' + (state.monsterName || 'タマゴ'), inline: true },
+        { name: '累積XP',           value: String(state.totalXp) + ' XP',                           inline: true },
+      ],
+      footer: { text: '🌟 おめでとう！ SHIFT AIジュニア モンスター育成プロジェクト' },
+      timestamp: new Date().toISOString(),
+    }],
+  };
 }
 
 /* ================================================================
-   Discord 送信ヘルパー（User-Agent必須）
+   承認☑を外したらXP取消（不適切提出のmariko対応用）
+   ================================================================ */
+function onApprovalEdit(e) {
+  try {
+    const sh = e.source.getActiveSheet();
+    const name = sh.getName();
+    if (name !== SHEET_LOG && name.indexOf('フォームの回答') !== 0) return;
+    ensureApprovalCols_(sh);
+
+    const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    const iApproved = header.indexOf('承認') + 1;
+    if (iApproved < 1) return;
+
+    const row = e.range.getRow();
+    if (row < 2) return;
+    if (e.range.getColumn() !== iApproved) return;
+
+    const val = isTruthy_(e.value);
+    if (val) return; // ☑にした場合は何もしない（提出時に既に通知済み）
+
+    // ☑を外した = 不適切提出として取消
+    const vals = sh.getRange(row, 1, 1, header.length).getValues()[0];
+    const pick = (name) => vals[findCol_(header, name)];
+    const nickname = pick('ニックネーム') || 'ゲスト';
+    const missionField = pick('挑戦した課題') || '';
+    const categoryRaw = String(pick('カテゴリ') || '');
+    const isResult = categoryRaw.indexOf('成果') >= 0 && categoryRaw.indexOf('成果物') < 0;
+
+    let subject, difficulty;
+    if (isResult) {
+      subject = String(pick('教科') || 'AI基礎');
+      const diffStr = String(pick('難易度') || '★1');
+      difficulty = parseInt((diffStr.match(/[1-5]/) || ['1'])[0], 10);
+    } else {
+      const missionId = extractMissionId_(missionField);
+      subject = subjectFromId_(missionId);
+      difficulty = difficultyFromId_(missionId);
+    }
+    const xp = (isResult ? XP_BY_STAR_RESULT : XP_BY_STAR_OUTPUT)[difficulty] || 0;
+
+    const payload = {
+      username: '🥚 モンスターの書',
+      embeds: [{
+        title: '⚠️ 提出が取り消されました（-' + xp + ' XP）',
+        description:
+          '**' + nickname + '** さんの提出が講師判断で取消されました。\n' +
+          '不適切な内容や重複提出が原因の可能性があります。',
+        color: 0xE74C3C,
+        footer: { text: 'SHIFT AIジュニア' },
+        timestamp: new Date().toISOString(),
+      }],
+    };
+    sendDiscord_(payload);
+  } catch (err) {
+    Logger.log('onApprovalEdit error: ' + err);
+  }
+}
+
+/* ================================================================
+   Discord 送信ヘルパー
    ================================================================ */
 function sendDiscord_(payload) {
   const url = PropertiesService.getScriptProperties().getProperty('DISCORD_WEBHOOK_URL');
@@ -286,51 +615,43 @@ function sendDiscord_(payload) {
     Logger.log('⚠️ DISCORD_WEBHOOK_URL 未設定');
     return;
   }
-  // 連続送信防止: 最大3回リトライ、毎回指数バックオフ
-  const maxRetries = 3;
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const res = UrlFetchApp.fetch(url, {
         method: 'post',
         contentType: 'application/json',
         payload: JSON.stringify(payload),
         muteHttpExceptions: true,
-        headers: { 'User-Agent': 'DragonBookBot/1.0 (+SHIFT AI Junior; Google Apps Script)' },
+        headers: { 'User-Agent': 'MonsterBookBot/1.0 (+SHIFT AI Junior)' },
       });
       const code = res.getResponseCode();
-      if (code >= 200 && code < 300) {
-        Logger.log('Discord送信成功 (attempt ' + attempt + ')');
-        return;
-      }
-      Logger.log('Discord送信失敗 attempt=' + attempt + ' code=' + code + ' body=' + res.getContentText().substring(0, 200));
-      // 429/1015の場合は待機してリトライ
-      if (code === 429 || code === 1015) {
-        Utilities.sleep(2000 * attempt);
-        continue;
-      }
-      // その他エラーは諦める
+      if (code >= 200 && code < 300) return;
+      if (code === 429 || code === 1015) { Utilities.sleep(2000 * attempt); continue; }
       return;
     } catch (err) {
-      Logger.log('Discord送信例外 attempt=' + attempt + ': ' + err);
       Utilities.sleep(1500 * attempt);
     }
   }
-  Logger.log('Discord送信 最終的に失敗');
 }
 
 /* ================================================================
-   ID/教科/Lv ヘルパー
+   ヘルパー
    ================================================================ */
 function extractMissionId_(text) {
-  const m = String(text || '').match(/\[(m-[a-z]\d+)\]/);
+  const m = String(text || '').match(/\[((?:m|r)-[a-z]\d+)\]/);
   return m ? m[1] : '';
 }
 function extractMissionTitle_(text) {
-  return String(text || '').replace(/\s*\[m-[a-z]\d+\]\s*$/, '').trim();
+  return String(text || '').replace(/\s*\[(?:m|r)-[a-z]\d+\]\s*$/, '').trim();
 }
 function subjectFromId_(id) {
-  const p = (id || '').slice(0, 3);
-  return { 'm-e': '英語', 'm-m': '数学', 'm-j': '国語', 'm-o': 'その他' }[p] || 'その他';
+  const c = (id || '').slice(2, 3);
+  return SUBJECT_MAP[c] || 'その他';
+}
+function difficultyFromId_(id) {
+  const last = String(id || '').slice(-1);
+  const n = parseInt(last, 10);
+  return (n >= 1 && n <= 5) ? n : 1;
 }
 function isTruthy_(v) {
   if (v === true) return true;
@@ -344,133 +665,101 @@ function formatDate_(v) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${dd}`;
-}
-const EVOLUTION_SERVER = [
-  { lv: 1, name: 'タマゴ',        xpStart: 0    },
-  { lv: 2, name: 'ベビードラゴン', xpStart: 100  },
-  { lv: 3, name: '若竜',          xpStart: 400  },
-  { lv: 4, name: '成竜',          xpStart: 1100 },
-  { lv: 5, name: '神竜',          xpStart: 2400 },
-];
-function calcLv_(xp) {
-  let cur = EVOLUTION_SERVER[0];
-  for (const e of EVOLUTION_SERVER) if (xp >= e.xpStart) cur = e;
-  return cur;
+  return y + '-' + m + '-' + dd;
 }
 
 /* ================================================================
-   承認トリガーを登録する（初回のみ手動実行）
+   トリガー登録（初回のみ手動実行）
    ================================================================ */
-function installApprovalTrigger() {
+function installAllTriggers() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const triggers = ScriptApp.getProjectTriggers();
-  triggers.forEach(t => {
-    if (t.getHandlerFunction() === 'onApprovalEdit') ScriptApp.deleteTrigger(t);
+  ScriptApp.getProjectTriggers().forEach(t => {
+    const fn = t.getHandlerFunction();
+    if (fn === 'onApprovalEdit' || fn === 'onFormSubmit') ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger('onApprovalEdit').forSpreadsheet(ss).onEdit().create();
-  safeAlert('✅ 承認トリガーを登録しました。\n今後「承認」列にTRUEを入れるとDiscord通知&XP加算が自動で動きます。');
-}
-
-/**
- * フォーム送信時のDiscordトリガーを登録する（初回のみ手動実行）
- */
-function installFormSubmitTrigger() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const triggers = ScriptApp.getProjectTriggers();
-  triggers.forEach(t => {
-    if (t.getHandlerFunction() === 'onFormSubmit') ScriptApp.deleteTrigger(t);
-  });
   ScriptApp.newTrigger('onFormSubmit').forSpreadsheet(ss).onFormSubmit().create();
-  safeAlert('✅ 提出トリガーを登録しました。\nフォームから送信されるたびにDiscord通知が飛びます。');
-}
-
-/**
- * 全トリガーを一括で登録する（便利関数）
- */
-function installAllTriggers() {
-  installApprovalTrigger();
-  installFormSubmitTrigger();
-}
-
-/* ================================================================
-   スプシのクリーンアップ: 教科列を削除 + 承認/XP加算済にチェックボックス化
-   ================================================================ */
-function cleanupSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(SHEET_LOG);
-  if (!sh) { safeAlert('⚠️ 提出ログがないよ'); return; }
-
-  // 1) 教科列を削除（既に消えていれば無視）
-  let header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
-  const iSubject = header.indexOf('教科');
-  if (iSubject >= 0) {
-    sh.deleteColumn(iSubject + 1);
-    Logger.log('教科列を削除しました');
-  }
-
-  // 2) XP加算済 → 通知済 にリネーム
-  header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
-  const iOld = header.indexOf('XP加算済');
-  if (iOld >= 0) {
-    sh.getRange(1, iOld + 1).setValue('通知済');
-    Logger.log('XP加算済 → 通知済 にリネームしました');
-  }
-
-  // 3) 承認列にチェックボックス + 通知済列も同じく
-  header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
-  const iApproved = header.indexOf('承認');
-  const iNotified = header.indexOf('通知済');
-  const lastRow   = sh.getMaxRows();
-
-  if (iApproved >= 0) {
-    const range = sh.getRange(2, iApproved + 1, lastRow - 1, 1);
-    const rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
-    range.setDataValidation(rule);
-  }
-  if (iNotified >= 0) {
-    const range = sh.getRange(2, iNotified + 1, lastRow - 1, 1);
-    const rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
-    range.setDataValidation(rule);
-    // 通知済列は内部管理用なので非表示化する
-    sh.hideColumns(iNotified + 1);
-    Logger.log('通知済列を非表示にしました');
-  }
-
-  safeAlert(
-    '✅ スプシをクリーンアップしました\n' +
-    '・教科列を削除\n' +
-    '・承認列にチェックボックスを設置\n' +
-    '・XP加算済 → 通知済にリネーム + 非表示化（内部用なので気にしなくてOK）\n\n' +
-    '承認するときは「承認」列の□をクリック → ☑ にするだけ！'
+  SpreadsheetApp.getUi().alert(
+    '✅ トリガー登録完了\n\n' +
+    '・フォーム送信 → 即時XP加算 + Discord通知\n' +
+    '・承認☑を外す → 取消通知（XP減算）'
   );
 }
 
 /* ================================================================
-   モック: 提出ログに疎通確認用のダミー行を入れる（任意）
+   スプシ初期セットアップ（手動実行・既存スプシにも対応）
+   - 新規スプシ: 全ヘッダーを設定
+   - 既存スプシ: 不足カラムだけ右側に追加（提出データを保持）
    ================================================================ */
-function insertDummyApprovedRow() {
+function setupSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(SHEET_LOG);
-  if (!sh) { safeAlert('⚠️ 提出ログがないよ'); return; }
-  const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
-  const now = new Date();
-  const row = header.map(h => {
-    switch (h) {
-      case 'タイムスタンプ':          return now;
-      case 'ニックネーム':            return 'デモ太郎';
-      case '挑戦した課題':            return 'AIに英単語カードを作ってもらう [m-e01]';
-      case '提出内容':                return 'ChatGPTで宇宙用語10個の単語カードを作った';
-      case '参考URL（任意）':          return '';
-      case 'ひとこと・質問（任意）':   return 'AIでテスト投稿';
-      case 'メールアドレス':          return 'demo@example.com';
-      case '承認':                   return true;
-      case 'フィードバック':          return '';
-      case 'XP加算済':                return '';
-      case 'いいね数':                return 0;
-      default:                       return '';
-    }
-  });
-  sh.appendRow(row);
-  safeAlert('ダミー行を追加しました。承認列はTRUE・XP加算済は空なので次の承認編集でDiscord通知が走ります。');
+  let sh = ss.getSheetByName(SHEET_LOG);
+  if (!sh) sh = ss.insertSheet(SHEET_LOG);
+
+  // Phase 2 必須ヘッダー
+  const requiredHeaders = [
+    'カテゴリ', '教科', '難易度', '成果の種類',
+    '承認', 'フィードバック', '通知済',
+  ];
+
+  // 新規スプシなら全ヘッダーを書き込む
+  if (sh.getLastRow() === 0) {
+    const fullHeaders = [
+      'タイムスタンプ', 'メールアドレス', 'ニックネーム',
+      'カテゴリ', '挑戦した課題', '教科', '難易度', '成果の種類',
+      '提出内容', '提出ファイル', '参考URL（任意）', 'ひとこと・質問（任意）',
+      '承認', 'フィードバック', '通知済',
+    ];
+    sh.getRange(1, 1, 1, fullHeaders.length).setValues([fullHeaders]);
+    sh.getRange(1, 1, 1, fullHeaders.length).setFontWeight('bold').setBackground('#F1C40F');
+  } else {
+    // 既存スプシ: 不足ヘッダーを右側に追加
+    const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    const added = [];
+    requiredHeaders.forEach(h => {
+      if (header.indexOf(h) === -1) {
+        const newCol = sh.getLastColumn() + 1;
+        sh.getRange(1, newCol).setValue(h);
+        sh.getRange(1, newCol).setFontWeight('bold').setBackground('#F1C40F');
+        added.push(h);
+      }
+    });
+    Logger.log('追加カラム: ' + added.join(', '));
+  }
+
+  // チェックボックス設定（承認・通知済）
+  const lastRow = Math.max(1000, sh.getMaxRows());
+  const headerNow = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  const iApproved = headerNow.indexOf('承認') + 1;
+  const iNotified = headerNow.indexOf('通知済') + 1;
+  const cb = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+  if (iApproved > 0) sh.getRange(2, iApproved, lastRow - 1, 1).setDataValidation(cb);
+  if (iNotified > 0) {
+    sh.getRange(2, iNotified, lastRow - 1, 1).setDataValidation(cb);
+    sh.hideColumns(iNotified);
+  }
+
+  SpreadsheetApp.getUi().alert(
+    '✅ スプシ初期化完了（Phase 2 対応）\n\n' +
+    '・新規提出は「承認」が自動TRUE → 即XP加算\n' +
+    '・不適切提出は☑を外すと取消通知が飛びます\n' +
+    '・カテゴリ列で 📦 成果物 / 🏆 成果 を判別'
+  );
+}
+
+/* ================================================================
+   Googleフォーム自動作成（初回のみ手動実行）
+   ================================================================ */
+function createSubmitForm() {
+  const r = ensureSubmitForm_();
+  Logger.log('FORM_URL: ' + r.formUrl);
+  Logger.log('EDIT_URL: ' + r.editUrl);
+  try {
+    SpreadsheetApp.getUi().alert(
+      (r.reused ? '✅ フォームは既に作成済みです\n\n' : '✅ フォーム作成完了\n\n') +
+      '📋 提出用URL（生徒に共有）:\n' + r.formUrl + '\n\n' +
+      '✏️ 編集URL:\n' + r.editUrl
+    );
+  } catch (e) {}
+  return r;
 }

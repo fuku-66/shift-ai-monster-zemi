@@ -1,150 +1,216 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📖 使い方 — ドラゴンの書</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>使い方 | モンスター育成プロジェクト</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  .doc-section {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(241,196,15,0.4);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .doc-section h2 {
+    color: #F1C40F;
+    margin-bottom: 16px;
+    font-size: 22px;
+  }
+  .doc-section h3 {
+    color: #d8c5ff;
+    margin: 20px 0 12px;
+    font-size: 16px;
+  }
+  .doc-section p, .doc-section li { font-size: 14px; line-height: 1.8; color: #ddd; }
+  .doc-section ul, .doc-section ol { margin-left: 24px; margin-bottom: 12px; }
+  table.evolution-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  table.evolution-table th, table.evolution-table td {
+    border: 1px solid rgba(241,196,15,0.3);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  table.evolution-table th { background: rgba(241,196,15,0.15); color: #F1C40F; }
+  .step {
+    counter-increment: step-counter;
+    padding-left: 40px;
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .step::before {
+    content: counter(step-counter);
+    position: absolute; left: 0; top: 0;
+    width: 28px; height: 28px;
+    background: #F1C40F; color: #0a0a1f;
+    border-radius: 50%;
+    text-align: center; line-height: 28px;
+    font-weight: bold;
+  }
+  .steps { counter-reset: step-counter; list-style: none; margin-left: 0; }
+  .secret {
+    background: rgba(241,196,15,0.08);
+    border-left: 4px solid #F1C40F;
+    padding: 12px 16px;
+    margin: 16px 0;
+    color: #F1C40F;
+    font-size: 13px;
+    border-radius: 0 4px 4px 0;
+  }
+</style>
 </head>
 <body>
 
-  <header class="site-header">
-    <h1 class="site-title"><a href="index.html">🐲 ドラゴンの書</a></h1>
-    <p class="site-subtitle">使い方・ルール</p>
-    <nav class="site-nav">
-      <a href="index.html">🏠 ホーム</a>
-      <a href="missions.html">🎯 課題一覧</a>
-      <a href="archive.html">📜 アーカイブ</a>
-      <a href="how-to.html" class="is-active">📖 使い方・ルール</a>
-    </nav>
-  </header>
+<!-- 右下固定ミニアバター -->
+<div id="mini-monster" class="mini-monster mini-monster-br" onclick="location.href='index.html'" title="ホームに戻る">
+  <img id="mini-monster-img" src="" alt="">
+  <div id="mini-monster-emoji" class="mini-emoji">🥚</div>
+  <div class="mini-lv" id="mini-lv">Lv.1</div>
+</div>
 
-  <main class="main-howto">
+<header class="site-header">
+  <h1>📖 使い方</h1>
+  <p class="tagline">プロジェクトのルールと進化の仕組み</p>
+  <nav class="nav">
+    <a href="index.html">ホーム</a>
+    <a href="missions.html">課題一覧</a>
+    <a href="archive.html">アーカイブ</a>
+    <a href="how-to.html" class="active">使い方</a>
+  </nav>
+</header>
 
-    <section class="howto-section">
-      <h2 class="section-title">🐲 このサイトについて</h2>
-      <p>
-        ここは <strong>SHIFT AIジュニア</strong> のみんなで
-        <strong>1体のドラゴンを育てる</strong> ゲーミフィケーションサイトだよ。
-      </p>
-      <p>
-        AIを使って学習したこと・作ったものを提出すると、講師が承認してXP（経験値）が加算されて、ドラゴンが進化していくよ🔥
-      </p>
-    </section>
+<main class="container">
 
-    <section class="howto-section">
-      <h2 class="section-title">📝 提出の流れ</h2>
-      <ol class="steps">
-        <li>課題カタログから好きな課題カードを選ぶ</li>
-        <li>「📝 提出する」ボタンをクリック → Googleフォームが開く</li>
-        <li><strong>名前 / 提出内容 / コメント</strong> を入力して送信</li>
-        <li>講師（SHIFT AIジュニア運営）が内容をチェック</li>
-        <li><strong>承認されると +20 XP</strong> / 差し戻しはDiscordで通知とフィードバック</li>
-        <li>XPがたまるとドラゴンがLv.UPして進化！</li>
-      </ol>
-    </section>
+  <section class="doc-section">
+    <h2>🥚 プロジェクトの目的</h2>
+    <p>みんなで1体のモンスターを育てよう。<br>
+    あなたの提出が、モンスターの「教科の傾向」を形作ります。<br>
+    どの教科を頑張るかで、進化する姿が変わってきます。</p>
+    <div class="secret">
+      ✨ どんな姿に進化するかは、提出してからのお楽しみ。<br>
+      隠しモンスターも存在するらしい…
+    </div>
+  </section>
 
-    <section class="howto-section howto-warning">
-      <h2 class="section-title">⚠️ AIを使うときの約束</h2>
-      <p>
-        このサイトの課題は <strong>AIツールを使った学習</strong> を中心にしています。
-        利用するときは以下の3つを守ってね👇
-      </p>
-      <ol class="steps">
-        <li>
-          <strong>年齢制限を守る</strong><br>
-          <span class="howto-note">ChatGPTは13歳以上（18歳未満は保護者の同意が必要）／ Claudeは18歳以上のみ／ Geminiは13歳以上。各ツールの規約を確認してから使おう。</span>
-        </li>
-        <li>
-          <strong>個人情報は入力しない</strong><br>
-          <span class="howto-note">本名・住所・学校名・電話番号・写真などはAIに入れないこと。</span>
-        </li>
-        <li>
-          <strong>AIの答えは"下書き"</strong><br>
-          <span class="howto-note">AIは間違えることがあるから、必ず自分で確認してから提出してね。丸パクリはNG。</span>
-        </li>
-      </ol>
-      <p class="howto-note">💡 ヒントに書いてあるツール名は一例だよ。安全に使えるツールを自由に選んでOK。</p>
-    </section>
-
-    <section class="howto-section">
-      <h2 class="section-title">🎯 XP・Lvシステム</h2>
-      <p><strong>1提出（承認済み）= +20 XP</strong></p>
-
-      <div class="evolution-table">
-        <div class="evolution-card">
-          <img src="assets/sprites/lv1-egg.png" alt="Lv.1 タマゴ" class="pixel-sprite evolution-card__sprite">
-          <div class="evolution-card__info">
-            <div class="evolution-card__lv">Lv.1</div>
-            <div class="evolution-card__name">タマゴ</div>
-            <div class="evolution-card__xp">0 XP 〜</div>
-          </div>
-        </div>
-        <div class="evolution-card">
-          <img src="assets/sprites/lv2-baby.png" alt="Lv.2 ベビー" class="pixel-sprite evolution-card__sprite">
-          <div class="evolution-card__info">
-            <div class="evolution-card__lv">Lv.2</div>
-            <div class="evolution-card__name">ベビードラゴン</div>
-            <div class="evolution-card__xp">100 XP 〜</div>
-          </div>
-        </div>
-        <div class="evolution-card evolution-card--locked">
-          <div class="evolution-card__sprite evolution-card__placeholder">❓</div>
-          <div class="evolution-card__info">
-            <div class="evolution-card__lv">Lv.3</div>
-            <div class="evolution-card__name">若竜</div>
-            <div class="evolution-card__xp">400 XP 〜</div>
-          </div>
-        </div>
-        <div class="evolution-card evolution-card--locked">
-          <div class="evolution-card__sprite evolution-card__placeholder">❓</div>
-          <div class="evolution-card__info">
-            <div class="evolution-card__lv">Lv.4</div>
-            <div class="evolution-card__name">成竜</div>
-            <div class="evolution-card__xp">1100 XP 〜</div>
-          </div>
-        </div>
-        <div class="evolution-card evolution-card--locked">
-          <div class="evolution-card__sprite evolution-card__placeholder">👑</div>
-          <div class="evolution-card__info">
-            <div class="evolution-card__lv">Lv.5</div>
-            <div class="evolution-card__name">神竜（Max）</div>
-            <div class="evolution-card__xp">2400 XP 〜</div>
-          </div>
-        </div>
+  <section class="doc-section">
+    <h2>📋 2つのカテゴリ</h2>
+    <div style="display:grid;grid-template-columns:1fr;gap:12px;margin:12px 0 16px;">
+      <div style="border:2px solid #3498DB;border-radius:8px;padding:14px;background:rgba(52,152,219,0.05);">
+        <h3 style="color:#5DADE2;margin-top:0;">📦 成果物（Output）</h3>
+        <p style="margin:0;">自分で作ったもの。AIで生成・制作したもの。</p>
+        <p style="margin:6px 0 0;color:#aaa;font-size:12px;">例: AI画像、AI文章、スライド、動画、デザイン、コード</p>
       </div>
-      <p class="howto-note">※ Lv.3以降のビジュアルは、ドラゴンが進化したときに解禁されるよ🎁</p>
-    </section>
+      <div style="border:2px solid #F1C40F;border-radius:8px;padding:14px;background:linear-gradient(135deg,rgba(241,196,15,0.08),rgba(230,126,34,0.05));">
+        <h3 style="color:#F1C40F;margin-top:0;">🏆 成果（Result） — XP×3倍</h3>
+        <p style="margin:0;">結果として得た実績。</p>
+        <p style="margin:6px 0 0;color:#aaa;font-size:12px;">例: コンテスト入賞、受賞、外部評価、採用、成績アップ、点数アップ</p>
+      </div>
+    </div>
+    <div class="secret">
+      💡 迷ったら：「自分で作った」→📦 成果物 / 「外から評価された」→🏆 成果
+    </div>
+  </section>
 
-    <section class="howto-section">
-      <h2 class="section-title">❓ よくある質問</h2>
-      <details>
-        <summary>Q. 何を提出すればいい？</summary>
-        <p>A. 勉強したこと・作ったもの・気づいたこと、なんでもOK。教科は「英語・数学・国語・その他（クリエイティブ・プログラミング等）」から選んでね。</p>
-      </details>
-      <details>
-        <summary>Q. 承認されないことはある？</summary>
-        <p>A. 内容が不明瞭だったり、ふざけた提出だったりすると差し戻しになります。フィードバックをもとに改善して再提出してね。</p>
-      </details>
-      <details>
-        <summary>Q. ドラゴンは1体だけ？</summary>
-        <p>A. Phase 1では「全員で1体」を育てます🐲 将来は教科別ドラゴンやレア進化も計画中！</p>
-      </details>
-      <details>
-        <summary>Q. 保護者も参加できる？</summary>
-        <p>A. できます！お子さんと一緒に学んだことを提出してOK。</p>
-      </details>
-    </section>
+  <section class="doc-section">
+    <h2>🚶 提出の流れ</h2>
+    <h3>📦 成果物の場合</h3>
+    <ol class="steps">
+      <li class="step">「課題一覧」から、挑戦する課題を選ぶ</li>
+      <li class="step">AIを使って課題に取り組む</li>
+      <li class="step">「📝 提出する」ボタン → Googleフォームに記入して送信</li>
+      <li class="step"><strong>送信時に即XP加算！</strong>モンスターが育ち、Discordに通知</li>
+    </ol>
 
-    <section class="footer-links">
-      <a href="index.html" class="link-box">← トップへ戻る</a>
-    </section>
+    <h3>🏆 成果の場合</h3>
+    <ol class="steps">
+      <li class="step">課題一覧ページの「🏆 成果を報告する」ボタンを押す（or ホームから）</li>
+      <li class="step">タイトル・教科・難易度・経緯を記入</li>
+      <li class="step">受賞ページや成績表のURL・写真を添付（任意・あると説得力UP）</li>
+      <li class="step"><strong>送信時に即XP×3倍加算！</strong>Discordで成果報告がアナウンスされる</li>
+    </ol>
+  </section>
 
-  </main>
+  <section class="doc-section">
+    <h2>🐉 進化の仕組み（4段階）</h2>
+    <table class="evolution-table">
+      <thead>
+        <tr><th>Lv</th><th>姿</th><th>累計XP</th><th>備考</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>🥚 タマゴ</td><td>0〜199 XP</td><td>全員共通のスタート地点</td></tr>
+        <tr><td>2</td><td>🐣 ヒナ</td><td>200〜599 XP</td><td>全員共通</td></tr>
+        <tr><td>3</td><td>❓ 子モンスター</td><td>600〜1499 XP</td><td>提出した教科のバランスで姿が変化</td></tr>
+        <tr><td>4</td><td>❓ 最終形態</td><td>1500 XP〜</td><td>育て方次第で6種類のどれかに進化</td></tr>
+      </tbody>
+    </table>
 
-  <footer class="site-footer">
-    <p>SHIFT AIジュニア ドラゴン育成プロジェクト</p>
-  </footer>
+    <div class="secret">
+      🎯 6種類目はレア進化。条件は秘密…見つけられるかな？
+    </div>
+  </section>
 
+  <section class="doc-section">
+    <h2>⭐ XP加算ルール</h2>
+    <table class="evolution-table">
+      <thead>
+        <tr><th>難易度</th><th>📦 成果物</th><th>🏆 成果（×3倍）</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>★1 やさしい</td><td>+15 XP</td><td>+45 XP</td></tr>
+        <tr><td>★2</td><td>+25 XP</td><td>+75 XP</td></tr>
+        <tr><td>★3 ふつう</td><td>+40 XP</td><td>+120 XP</td></tr>
+        <tr><td>★4</td><td>+60 XP</td><td>+180 XP</td></tr>
+        <tr><td>★5 チャレンジ</td><td>+80 XP</td><td>+240 XP</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;">XPは <strong>選んだ教科の軸だけ</strong> に加算されます。<br>
+    例：英語の★3 成果物を提出 → 英語軸に +40 XP<br>
+    例：英語の★3 成果（英検3級合格など）を報告 → 英語軸に +120 XP</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>📝 提出時のヒント</h2>
+    <ul>
+      <li>スクショ1枚＋コメント数行でOK。完璧を目指さなくていい</li>
+      <li>AIにやらせるだけじゃなく、自分の言葉で「気づいたこと」を一言添えるとGood</li>
+      <li>同じ課題に何度挑戦してもOK（ただし内容は変えよう）</li>
+      <li>🏆 成果報告は証拠（URL・スクショ）があるとモンスターも嬉しい</li>
+      <li>不適切な提出（コピペ・空っぽ）は後から取り消されてXPが減ることがあるので注意</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="site-footer">© SHIFT AI ジュニア モンスター育成プロジェクト</footer>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/monster.js"></script>
+<script src="assets/js/api.js"></script>
+<script>
+(async function () {
+  try {
+    const state = await window.MZ_API.fetchState();
+    const stats = state.stats || { ai:0, eng:0, math:0, study:0, creative:0 };
+    const m = window.MZ_MONSTER.determineMonster(stats);
+    const img = document.getElementById('mini-monster-img');
+    const emoji = document.getElementById('mini-monster-emoji');
+    img.src = m.imagePath;
+    img.alt = m.monsterName;
+    let triedSvg = false;
+    img.onerror = () => {
+      if (!triedSvg && img.src.endsWith('.png')) { triedSvg = true; img.src = m.imagePath.replace('.png','.svg'); return; }
+      img.style.display = 'none';
+      if (emoji) emoji.style.display = 'block';
+    };
+    document.getElementById('mini-lv').textContent = 'Lv.' + m.lv;
+  } catch (e) {}
+})();
+</script>
 </body>
 </html>
