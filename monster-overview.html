@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>モンスター育成プロジェクト — 進化一覧</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a1f;
+    --surface: rgba(255,255,255,0.05);
+    --border: rgba(241,196,15,0.35);
+    --gold: #F1C40F;
+    --text: #e8e8f0;
+    --muted: #aaa;
+    --ai: #4FC3F7;
+    --eng: #FF8A65;
+    --math: #81C784;
+    --study: #BA68C8;
+    --creative: #F06292;
+    --balance: #E0C4FF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DotGothic16', sans-serif;
+    line-height: 1.7;
+    padding: 0 0 60px;
+  }
+
+  /* ---- HERO ---- */
+  .hero {
+    background: linear-gradient(135deg, #0d0d2e 0%, #1a1040 50%, #0d1a30 100%);
+    border-bottom: 2px solid var(--border);
+    padding: 48px 24px 40px;
+    text-align: center;
+  }
+  .hero h1 { font-size: 28px; color: var(--gold); letter-spacing: 2px; margin-bottom: 8px; }
+  .hero p  { color: var(--muted); font-size: 14px; }
+  .hero .url { color: #7ec8ff; font-size: 12px; margin-top: 4px; }
+
+  /* ---- CONTAINER ---- */
+  .container { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---- SECTION ---- */
+  .section { margin-top: 40px; }
+  .section-title {
+    font-size: 18px;
+    color: var(--gold);
+    border-left: 4px solid var(--gold);
+    padding-left: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* ---- EVOLUTION FLOW ---- */
+  .evo-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .evo-card {
+    flex: 0 0 auto;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: center;
+    min-width: 140px;
+  }
+  .evo-card .lv { font-size: 11px; color: var(--muted); }
+  .evo-card .img-wrap { height: 80px; display: flex; align-items: center; justify-content: center; margin: 8px 0; }
+  .evo-card .img-wrap img { max-height: 76px; max-width: 100px; image-rendering: pixelated; }
+  .evo-card .name { font-size: 14px; color: #fff; }
+  .evo-card .xp { font-size: 12px; color: var(--gold); margin-top: 4px; }
+  .evo-card.special { border-color: var(--balance); }
+  .evo-arrow { font-size: 24px; color: var(--gold); flex: 0 0 auto; }
+
+  /* ---- MONSTER GRID ---- */
+  .monster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
+  .monster-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
+    position: relative;
+  }
+  .monster-card.lv3 { border-color: rgba(255,255,255,0.2); }
+  .monster-card.lv4 { border-color: var(--gold); }
+  .monster-card.rare { border-color: var(--balance); }
+  .monster-card .axis-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+  .monster-card img {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    margin: 6px 0;
+  }
+  .monster-card .mname { font-size: 13px; color: #fff; }
+  .monster-card .mdesc { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .rare-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 10px;
+    background: var(--balance);
+    color: #2a1a50;
+    padding: 2px 6px;
+    border-radius: 20px;
+    font-weight: bold;
+  }
+
+  /* ---- XP TABLE ---- */
+  .xp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 560px) { .xp-grid { grid-template-columns: 1fr; } }
+  table.xp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.xp-table th, table.xp-table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  table.xp-table th { background: rgba(241,196,15,0.12); color: var(--gold); }
+  table.xp-table td:last-child { color: var(--gold); font-weight: bold; }
+
+  .card-block {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card-block h3 { color: var(--gold); margin-bottom: 12px; font-size: 15px; }
+
+  /* ---- AXIS TABLE ---- */
+  .axis-list { list-style: none; }
+  .axis-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 13px;
+  }
+  .axis-list li:last-child { border-bottom: none; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 12px; }
+
+  /* ---- FLOW NOTE ---- */
+  .flow-note {
+    background: rgba(241,196,15,0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 16px;
+    line-height: 1.8;
+  }
+  .flow-note b { color: var(--text); }
+
+  /* ---- FOOTER ---- */
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🐉 モンスター育成プロジェクト</h1>
+  <p>SHIFT AI ジュニア — モンスター進化・XP設計 仕様書</p>
+  <div class="url">https://fuku-66.github.io/shift-ai-monster-zemi/</div>
+</div>
+
+<div class="container">
+
+  <!-- ① 進化ステージ概要 -->
+  <div class="section">
+    <div class="section-title">① 進化ステージ（4段階）</div>
+    <div class="evo-flow">
+      <!-- Lv1 -->
+      <div class="evo-card">
+        <div class="lv">Lv.1</div>
+        <div class="img-wrap"><img src="assets/images/monsters/monster-0-egg.png" alt="タマゴ"></div>
+        <div class="name">🥚 タマゴ</div>
+        <div class="xp">0 〜 199 XP</div>
+      </div>
+      <div class="evo-arrow">▶</div>
+      <!-- Lv2 -->
+      <div class="evo-card">
+        <div class="lv">Lv.2</div>
+        <div class="img-wrap"><img src="assets/images/monsters/monster-1-hatchling.png" alt="ヒナ"></div>
+        <div class="name">🐣 ヒナ</div>
+        <div class="xp">200 〜 599 XP</div>
+      </div>
+      <div class="evo-arrow">▶</div>
+      <!-- Lv3 -->
+      <div class="evo-card">
+        <div class="lv">Lv.3</div>
+        <div class="img-wrap" style="font-size:36px;">❓</div>
+        <div class="name">子モンスター</div>
+        <div class="xp">600 〜 1499 XP</div>
+      </div>
+      <div class="evo-arrow">▶</div>
+      <!-- Lv4 -->
+      <div class="evo-card">
+        <div class="lv">Lv.4</div>
+        <div class="img-wrap" style="font-size:36px;">⭐</div>
+        <div class="name">最終形態</div>
+        <div class="xp">1500 XP〜</div>
+      </div>
+    </div>
+    <div class="flow-note">
+      Lv.1・Lv.2 は<b>全員共通</b>の姿。Lv.3 以降は、累計XPの教科バランスによって<b>6種類のどれかに分岐</b>します。
+      5教科のXPが均等（差10以下）だと<b>レア進化（ユニコーン系）</b>が発生します。
+    </div>
+  </div>
+
+  <!-- ② Lv3 子モンスター一覧 -->
+  <div class="section">
+    <div class="section-title">② Lv.3 子モンスター（600 XP〜）</div>
+    <div class="monster-grid">
+
+      <div class="monster-card lv3">
+        <span class="axis-tag" style="background:rgba(79,195,247,0.15);color:#4FC3F7;">AI基礎</span>
+        <br>
+        <img src="assets/images/monsters/monster-2-cyber-baby.png" alt="子サイバービースト">
+        <div class="mname">子サイバービースト</div>
+        <div class="mdesc">青い小型ロボット。座りポーズ・一つ目</div>
+      </div>
+
+      <div class="monster-card lv3">
+        <span class="axis-tag" style="background:rgba(255,138,101,0.15);color:#FF8A65;">英語</span>
+        <br>
+        <img src="assets/images/monsters/monster-3-phoenix-baby.png" alt="子フェニックス">
+        <div class="mname">子フェニックス</div>
+        <div class="mdesc">オレンジのちびフェニックス</div>
+      </div>
+
+      <div class="monster-card lv3">
+        <span class="axis-tag" style="background:rgba(129,199,132,0.15);color:#81C784;">数学</span>
+        <br>
+        <img src="assets/images/monsters/monster-4-golem-baby.png" alt="子クリスタルゴーレム">
+        <div class="mname">子クリスタルゴーレム</div>
+        <div class="mdesc">緑の小さなゴーレム</div>
+      </div>
+
+      <div class="monster-card lv3">
+        <span class="axis-tag" style="background:rgba(186,104,200,0.15);color:#BA68C8;">勉強法</span>
+        <br>
+        <img src="assets/images/monsters/monster-5-wolf-baby.png" alt="子シャドウウルフ">
+        <div class="mname">子シャドウウルフ</div>
+        <div class="mdesc">紫の子狼</div>
+      </div>
+
+      <div class="monster-card lv3">
+        <span class="axis-tag" style="background:rgba(240,98,146,0.15);color:#F06292;">クリエイティブ</span>
+        <br>
+        <img src="assets/images/monsters/monster-6-rainbow-baby.png" alt="子レインボードラゴン">
+        <div class="mname">子レインボードラゴン</div>
+        <div class="mdesc">パステル虹ドラゴン（小）</div>
+      </div>
+
+      <div class="monster-card lv3 rare">
+        <span class="rare-badge">レア</span>
+        <span class="axis-tag" style="background:rgba(224,196,255,0.15);color:#E0C4FF;">バランス</span>
+        <br>
+        <img src="assets/images/monsters/monster-7-unicorn-baby.png" alt="子ユニコーン">
+        <div class="mname">子ユニコーン</div>
+        <div class="mdesc">ちびユニコーン。5教科均等XP時に発生</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ③ Lv4 最終形態一覧 -->
+  <div class="section">
+    <div class="section-title">③ Lv.4 最終形態（1500 XP〜）</div>
+    <div class="monster-grid">
+
+      <div class="monster-card lv4">
+        <span class="axis-tag" style="background:rgba(79,195,247,0.15);color:#4FC3F7;">AI基礎</span>
+        <br>
+        <img src="assets/images/monsters/monster-8-cyber.png" alt="サイバービースト">
+        <div class="mname">サイバービースト</div>
+        <div class="mdesc">大型ロボット。白銀・青エネルギー</div>
+      </div>
+
+      <div class="monster-card lv4">
+        <span class="axis-tag" style="background:rgba(255,138,101,0.15);color:#FF8A65;">英語</span>
+        <br>
+        <img src="assets/images/monsters/monster-9-phoenix.png" alt="フェニックス">
+        <div class="mname">フェニックス</div>
+        <div class="mdesc">巨大フェニックス。炎・翼広げ</div>
+      </div>
+
+      <div class="monster-card lv4">
+        <span class="axis-tag" style="background:rgba(129,199,132,0.15);color:#81C784;">数学</span>
+        <br>
+        <img src="assets/images/monsters/monster-10-golem.png" alt="クリスタルゴーレム">
+        <div class="mname">クリスタルゴーレム</div>
+        <div class="mdesc">大型緑ゴーレム</div>
+      </div>
+
+      <div class="monster-card lv4">
+        <span class="axis-tag" style="background:rgba(186,104,200,0.15);color:#BA68C8;">勉強法</span>
+        <br>
+        <img src="assets/images/monsters/monster-11-wolf.png" alt="シャドウウルフ">
+        <div class="mname">シャドウウルフ</div>
+        <div class="mdesc">紫狼成体。炎オーラ・巻物</div>
+      </div>
+
+      <div class="monster-card lv4">
+        <span class="axis-tag" style="background:rgba(240,98,146,0.15);color:#F06292;">クリエイティブ</span>
+        <br>
+        <img src="assets/images/monsters/monster-12-rainbow.png" alt="レインボードラゴン">
+        <div class="mname">レインボードラゴン</div>
+        <div class="mdesc">妖精羽の虹ドラゴン</div>
+      </div>
+
+      <div class="monster-card lv4 rare">
+        <span class="rare-badge">レア</span>
+        <span class="axis-tag" style="background:rgba(224,196,255,0.15);color:#E0C4FF;">バランス</span>
+        <br>
+        <img src="assets/images/monsters/monster-13-unicorn.png" alt="ユニコーン神獣">
+        <div class="mname">ユニコーン神獣</div>
+        <div class="mdesc">大ユニコーン。虹たてがみ</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ④ XP加算ルール -->
+  <div class="section">
+    <div class="section-title">④ XP加算ルール</div>
+    <div class="xp-grid">
+
+      <div class="card-block">
+        <h3>📦 成果物（難易度で変動）</h3>
+        <table class="xp-table">
+          <thead>
+            <tr><th>難易度</th><th>XP</th><th>加算先</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>★1 やさしい</td><td>+15 XP</td><td rowspan="5" style="vertical-align:middle;color:var(--muted);font-size:11px;">選んだ<br>教科の軸のみ</td></tr>
+            <tr><td>★2</td><td>+25 XP</td></tr>
+            <tr><td>★3 ふつう</td><td>+40 XP</td></tr>
+            <tr><td>★4</td><td>+60 XP</td></tr>
+            <tr><td>★5 チャレンジ</td><td>+80 XP</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted);">例: 英語の★3 → 英語軸に +40 XP</div>
+      </div>
+
+      <div class="card-block">
+        <h3>🏆 成果（コンテスト入賞・受賞など）</h3>
+        <div style="font-size:32px;color:var(--gold);margin:12px 0;">+120 XP</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">難易度・教科問わず一律。5教科に均等加算（各 +24 XP）</div>
+        <table class="xp-table">
+          <thead>
+            <tr><th>教科</th><th>加算</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>AI基礎 / 英語 / 数学<br>勉強法 / クリエイティブ</td><td>各 +24 XP</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted);">全軸が均等に伸びるのでバランス進化（レア）も狙いやすい</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ⑤ 教科軸と進化の関係 -->
+  <div class="section">
+    <div class="section-title">⑤ 教科軸と進化モンスターの対応</div>
+    <div class="card-block">
+      <ul class="axis-list">
+        <li>
+          <span class="dot" style="background:#4FC3F7;"></span>
+          <span style="color:#4FC3F7;width:90px;">AI基礎</span>
+          <span style="color:var(--muted);">子サイバービースト</span>
+          <span style="margin:0 8px;color:rgba(255,255,255,0.2);">→</span>
+          <span>サイバービースト</span>
+        </li>
+        <li>
+          <span class="dot" style="background:#FF8A65;"></span>
+          <span style="color:#FF8A65;width:90px;">英語</span>
+          <span style="color:var(--muted);">子フェニックス</span>
+          <span style="margin:0 8px;color:rgba(255,255,255,0.2);">→</span>
+          <span>フェニックス</span>
+        </li>
+        <li>
+          <span class="dot" style="background:#81C784;"></span>
+          <span style="color:#81C784;width:90px;">数学</span>
+          <span style="color:var(--muted);">子クリスタルゴーレム</span>
+          <span style="margin:0 8px;color:rgba(255,255,255,0.2);">→</span>
+          <span>クリスタルゴーレム</span>
+        </li>
+        <li>
+          <span class="dot" style="background:#BA68C8;"></span>
+          <span style="color:#BA68C8;width:90px;">勉強法</span>
+          <span style="color:var(--muted);">子シャドウウルフ</span>
+          <span style="margin:0 8px;color:rgba(255,255,255,0.2);">→</span>
+          <span>シャドウウルフ</span>
+        </li>
+        <li>
+          <span class="dot" style="background:#F06292;"></span>
+          <span style="color:#F06292;width:90px;">クリエイティブ</span>
+          <span style="color:var(--muted);">子レインボードラゴン</span>
+          <span style="margin:0 8px;color:rgba(255,255,255,0.2);">→</span>
+          <span>レインボードラゴン</span>
+        </li>
+        <li>
+          <span class="dot" style="background:#E0C4FF;"></span>
+          <span style="color:#E0C4FF;width:90px;">バランス ✨</span>
+          <span style="color:var(--muted);">子ユニコーン</span>
+          <span style="margin:0 8px;color:rgba(255,255,255,0.2);">→</span>
+          <span>ユニコーン神獣<span style="font-size:11px;color:#E0C4FF;margin-left:6px;">レア</span></span>
+        </li>
+      </ul>
+      <div class="flow-note" style="margin-top:16px;">
+        <b>バランス判定</b>: 5教科のXP最大値 − 最小値 ≤ 10 のとき、レア進化（ユニコーン系）に分岐。<br>
+        それ以外は<b>最も高いXPの教科軸</b>のモンスターに進化。
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="container">
+    © SHIFT AI ジュニア モンスター育成プロジェクト — 仕様書（内部共有用）
+  </div>
+</footer>
+
+</body>
+</html>
