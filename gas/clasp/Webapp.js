@@ -80,10 +80,8 @@ function ensureResultForm_(forceRebuild) {
   const form = FormApp.create('🏆 SHIFT AI ジュニア 成果報告フォーム');
   form.setDescription(
     '🏆 成果報告（一律 +120 XP）\n\n' +
-    'コンテスト入賞・受賞・成績アップ・点数アップ・採用などの実績を報告できます。\n' +
-    '通常の成果物提出（AIで作ったもの）は別フォームから提出してね。\n\n' +
-    '⚠️ 入力した内容はDiscordに表示されます。\n' +
-    '個人情報（フルネーム・住所・学校名のフルネーム・電話番号など）は伏せて書いてね。'
+    'コンテスト入賞・受賞・成績アップ・点数アップ・採用などの実績を報告するフォームです。\n' +
+    '通常の成果物（AIで作成したもの）の提出は、別フォームから行ってください。'
   );
   form.setCollectEmail(true);
 
@@ -92,23 +90,23 @@ function ensureResultForm_(forceRebuild) {
     .setTitle('ニックネーム（Discordと同じ名前）')
     .setRequired(true);
 
-  // 2. タイトル（何の成果か）
+  // 2. タイトル
   form.addParagraphTextItem()
     .setTitle('タイトル（何の成果か）')
-    .setHelpText('例: 「英検3級合格」「校内絵画展で金賞」「数学テスト80点→90点」')
+    .setHelpText('例：「英検3級合格」「校内絵画展で金賞」「数学テスト80点→90点」')
     .setRequired(true);
 
   // 3. 教科
   form.addMultipleChoiceItem()
     .setTitle('📚 教科')
-    .setHelpText('5教科のどれに最も近いか選んでね')
+    .setHelpText('5教科のうち、最も近いものを選択してください。')
     .setChoiceValues(['AI基礎', '英語', '数学', '勉強法', 'クリエイティブ'])
     .setRequired(true);
 
   // 4. 成果の種類
   form.addMultipleChoiceItem()
     .setTitle('🏅 成果の種類')
-    .setHelpText('一番近いものを選んでね')
+    .setHelpText('最も近いものを1つ選択してください。')
     .setChoiceValues([
       'コンテスト入賞', '受賞', '外部評価', '採用実績',
       '成績アップ', '点数アップ', 'その他',
@@ -119,18 +117,14 @@ function ensureResultForm_(forceRebuild) {
   // 5. 成果の内容
   form.addParagraphTextItem()
     .setTitle('成果の内容')
-    .setHelpText(
-      'どんな取り組みで達成したか・使ったAI・工夫した点・期間など。\n\n' +
-      '⚠️ ここに書いた内容は外部（Discord・サイトのアーカイブ）に表示されます。\n' +
-      'フルネーム・住所・学校名フルネーム・写真の顔などは伏せて書いてね。'
-    )
+    .setHelpText('どのような取り組みで達成したか、使用したAI、工夫した点、期間などを記入してください。')
     .setRequired(true);
 
   // 6. 参考ファイル
   try {
     form.addFileUploadItem()
-      .setTitle('参考ファイル（任意・賞状の写真・成績表・受賞ページのスクショなど）')
-      .setHelpText('個人情報が写り込んでいる部分はモザイク・トリミングで隠してね')
+      .setTitle('参考ファイル（任意）')
+      .setHelpText('賞状・成績表・受賞ページのスクリーンショットなど。個人情報が写っている部分はモザイクまたはトリミング処理を行ってください。')
       .setRequired(false);
   } catch (e) {
     Logger.log('ファイルアップロード追加に失敗: ' + e);
@@ -139,11 +133,24 @@ function ensureResultForm_(forceRebuild) {
   // 7. 参考URL
   form.addTextItem()
     .setTitle('参考URL（任意）')
-    .setHelpText('受賞ページ・コンテスト結果ページのリンクなど');
+    .setHelpText('受賞ページ・コンテスト結果ページなどのリンクを記入してください。');
 
   // 8. ひとこと
-  form.addParagraphTextItem()
-    .setTitle('ひとこと・質問（任意）');
+  form.addParagraphTextItem().setTitle('ひとこと・質問（任意）');
+
+  // 9. 外部公開への同意（必須）
+  form.addSectionHeaderItem()
+    .setTitle('🔓 外部公開への同意（必須）')
+    .setHelpText(
+      '提出内容（タイトル・成果の種類・成果の内容・参考URL）は、Discordチャンネルおよびサイト内アーカイブに公開されます。\n\n' +
+      '・フルネーム・住所・学校名・電話番号などの個人情報は記入しないでください。\n' +
+      '・万一、個人情報が含まれていた場合は、運営側で該当部分を伏せて公開します。'
+    );
+
+  form.addMultipleChoiceItem()
+    .setTitle('上記の内容で外部公開することに同意しますか？')
+    .setChoiceValues(['同意します'])
+    .setRequired(true);
 
   form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
   props.setProperty('RESULT_FORM_ID', form.getId());
@@ -303,11 +310,11 @@ function ensureSubmitForm_(forceRebuild) {
   }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const form = FormApp.create('SHIFT AI ジュニア 提出フォーム');
+  const form = FormApp.create('📦 SHIFT AI ジュニア 成果物提出フォーム');
   form.setDescription(
-    '📦 成果物 = 自分で作ったもの（AI画像・文章・スライド・コードなど）\n' +
-    '🏆 成果   = 結果として得た実績（受賞・点数アップ・採用など / XP×3倍）\n\n' +
-    '迷ったら: 「自分で作った」→成果物 / 「外から評価された」→成果'
+    '📦 成果物の提出フォームです。\n\n' +
+    'AIで作成した画像・文章・スライド・動画・デザイン・コードなどの成果物を提出してください。\n' +
+    '受賞・点数アップなどの「成果」を報告したい場合は、別途「成果報告フォーム」をご利用ください。'
   );
   form.setCollectEmail(true);
 
@@ -316,79 +323,49 @@ function ensureSubmitForm_(forceRebuild) {
     .setTitle('ニックネーム（Discordと同じ名前）')
     .setRequired(true);
 
-  // 2. カテゴリ
-  form.addMultipleChoiceItem()
-    .setTitle('📋 カテゴリ')
-    .setHelpText(
-      '📦 成果物 = 自分で作ったもの（AI画像・文章・デザイン・スライド・動画など）\n' +
-      '🏆 成果   = 結果・実績（コンテスト入賞・受賞・成績アップ・点数アップ・採用など）\n\n' +
-      '例:「ChatGPTで描いた絵」→📦 成果物\n' +
-      '例:「数学のテスト80点→90点」→🏆 成果\n' +
-      '例:「コンテストで佳作」→🏆 成果'
-    )
-    .setChoiceValues(['📦 成果物', '🏆 成果'])
-    .setRequired(true);
-
-  // 3. 挑戦した課題 / タイトル（成果物のみ自動入力・成果は手入力）
+  // 2. 挑戦した課題
   form.addParagraphTextItem()
-    .setTitle('挑戦した課題 / タイトル')
-    .setHelpText(
-      '📦 成果物の場合: サイトから「📝 提出する」を押すと自動入力されます\n' +
-      '🏆 成果の場合: 何の成果か書いてください（例: 「英検3級合格」「学校絵画展で金賞」）'
-    )
+    .setTitle('挑戦した課題')
+    .setHelpText('サイトの課題カードから「📝 提出する」を押すと自動入力されます。')
     .setRequired(true);
 
-  // 4. 教科（成果のとき必要 / 成果物は自動判別だが念のため確認）
-  form.addMultipleChoiceItem()
-    .setTitle('📚 教科')
-    .setHelpText('🏆 成果の場合は5教科から選択 / 📦 成果物は自動判別なので任意')
-    .setChoiceValues(['AI基礎', '英語', '数学', '勉強法', 'クリエイティブ'])
-    .setRequired(false);
-
-  // 5. 難易度（成果のとき必要）
-  form.addMultipleChoiceItem()
-    .setTitle('⭐ 難易度（自己申告）')
-    .setHelpText('🏆 成果の場合のみ選択。📦 成果物は課題に紐づくので不要')
-    .setChoiceValues(['★1 やさしい', '★2', '★3 ふつう', '★4', '★5 チャレンジ'])
-    .setRequired(false);
-
-  // 6. 成果の種類
-  form.addMultipleChoiceItem()
-    .setTitle('🏅 成果の種類（成果のときのみ）')
-    .setHelpText('一番近いものを選んでください')
-    .setChoiceValues([
-      'コンテスト入賞', '受賞', '外部評価', '採用実績',
-      '成績アップ', '点数アップ', 'その他',
-    ])
-    .showOtherOption(true)
-    .setRequired(false);
-
-  // 7. 提出内容
+  // 3. 提出内容
   form.addParagraphTextItem()
     .setTitle('提出内容')
-    .setHelpText(
-      '📦 成果物: AIとのやりとり・気づき・スクショの説明など\n' +
-      '🏆 成果: どんな経緯で達成したか・使ったAI・工夫した点など'
-    )
+    .setHelpText('AIとのやり取り、気づいたこと、工夫した点、スクリーンショットの説明などを記入してください。')
     .setRequired(true);
 
-  // 8. ファイルアップロード
+  // 4. 提出ファイル
   try {
     form.addFileUploadItem()
-      .setTitle('提出ファイル（画像・PDF・スクショ等／任意）')
-      .setHelpText('スクショ・PDF・作品ファイル・賞状の写真などを添付できます')
+      .setTitle('提出ファイル（任意）')
+      .setHelpText('画像・PDF・作品ファイルなどを添付できます。個人情報が写っている部分はモザイクまたはトリミング処理を行ってください。')
       .setRequired(false);
   } catch (e) {
     Logger.log('ファイルアップロード追加に失敗: ' + e);
   }
 
-  // 9. 参考URL
+  // 5. 参考URL
   form.addTextItem()
     .setTitle('参考URL（任意）')
-    .setHelpText('🏆 成果の場合は証拠URL（受賞ページ・スプシリンクなど）を入れると説得力UP（任意）');
+    .setHelpText('作品やプロンプトの共有リンクなど。');
 
-  // 10. ひとこと
+  // 6. ひとこと
   form.addParagraphTextItem().setTitle('ひとこと・質問（任意）');
+
+  // 7. 外部公開への同意（必須）
+  form.addSectionHeaderItem()
+    .setTitle('🔓 外部公開への同意（必須）')
+    .setHelpText(
+      '提出内容（挑戦した課題・提出内容・参考URL）は、Discordチャンネルおよびサイト内アーカイブに公開されます。\n\n' +
+      '・フルネーム・住所・学校名・電話番号などの個人情報は記入しないでください。\n' +
+      '・万一、個人情報が含まれていた場合は、運営側で該当部分を伏せて公開します。'
+    );
+
+  form.addMultipleChoiceItem()
+    .setTitle('上記の内容で外部公開することに同意しますか？')
+    .setChoiceValues(['同意します'])
+    .setRequired(true);
 
   form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
   props.setProperty('FORM_ID', form.getId());
