@@ -33,6 +33,13 @@
 </head>
 <body>
 
+<!-- 右下固定ミニアバター -->
+<div id="mini-monster" class="mini-monster mini-monster-br" onclick="location.href='index.html'" title="ホームに戻る">
+  <img id="mini-monster-img" src="" alt="">
+  <div id="mini-monster-emoji" class="mini-emoji">🥚</div>
+  <div class="mini-lv" id="mini-lv">Lv.1</div>
+</div>
+
 <header class="site-header">
   <h1>📜 アーカイブ</h1>
   <p class="tagline">これまでの全提出記録</p>
@@ -69,6 +76,7 @@
 <footer class="site-footer">© SHIFT AI ジュニア モンスター育成プロジェクト</footer>
 
 <script src="assets/js/config.js"></script>
+<script src="assets/js/monster.js"></script>
 <script src="assets/js/api.js"></script>
 <script>
 (async function () {
@@ -80,6 +88,24 @@
 
   const state = await window.MZ_API.fetchState();
   allItems = state.all || state.recent || [];
+
+  // 右下ミニアバター
+  const stats = state.stats || { ai:0, eng:0, math:0, study:0, creative:0 };
+  const m = window.MZ_MONSTER.determineMonster(stats);
+  const miImg = document.getElementById('mini-monster-img');
+  const miEmoji = document.getElementById('mini-monster-emoji');
+  if (miImg) {
+    miImg.src = m.imagePath;
+    miImg.alt = m.monsterName;
+    let triedSvg = false;
+    miImg.onerror = () => {
+      if (!triedSvg && miImg.src.endsWith('.png')) { triedSvg = true; miImg.src = m.imagePath.replace('.png','.svg'); return; }
+      miImg.style.display = 'none';
+      if (miEmoji) miEmoji.style.display = 'block';
+    };
+  }
+  const miLv = document.getElementById('mini-lv');
+  if (miLv) miLv.textContent = 'Lv.' + m.lv;
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));

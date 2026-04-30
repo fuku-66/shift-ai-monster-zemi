@@ -62,13 +62,13 @@
     </ul>
   </section>
 
-  <!-- レーダーチャート（トグル） -->
+  <!-- レーダーチャート（デフォルト表示・トグル可） -->
   <section class="radar-section">
-    <button class="radar-toggle" id="radar-toggle" onclick="toggleRadar()">
-      <span>📡 詳細レーダーチャートを見る</span>
-      <span id="radar-toggle-icon">▼</span>
+    <button class="radar-toggle open" id="radar-toggle" onclick="toggleRadar()">
+      <span>📡 レーダーチャートを閉じる</span>
+      <span id="radar-toggle-icon">▲</span>
     </button>
-    <div class="radar-wrap" id="radar-wrap" style="display:none;">
+    <div class="radar-wrap" id="radar-wrap" style="display:block;">
       <canvas id="radar-chart"></canvas>
     </div>
   </section>

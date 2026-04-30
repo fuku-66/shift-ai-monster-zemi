@@ -46,9 +46,25 @@
   const balanceText = (m.lv >= 3 && state.isBalance) ? '🌈 全軸バランス進化' : '';
   setText('modal-monster-meta', `${m.total} XP 累計 ｜ ${state.totalSubmissions || 0} 件提出 ${balanceText}`);
 
-  // レーダーチャート（初期は描画しない、トグル時に描画）
+  // レーダーチャート: デフォルトで描画（sessionStorageで開閉状態を保持）
   window._radarStats = stats;
   window._radarDrawn = false;
+  const savedState = sessionStorage.getItem('radarOpen');
+  const shouldOpen = savedState === null ? true : savedState === '1';
+  if (shouldOpen) {
+    drawRadar(stats);
+    window._radarDrawn = true;
+  } else {
+    const wrap = document.getElementById('radar-wrap');
+    const toggle = document.getElementById('radar-toggle');
+    const icon = document.getElementById('radar-toggle-icon');
+    if (wrap) wrap.style.display = 'none';
+    if (toggle) {
+      toggle.classList.remove('open');
+      toggle.querySelector('span:first-child').textContent = '📡 詳細レーダーチャートを見る';
+    }
+    if (icon) icon.textContent = '▼';
+  }
 
   // 最新提出
   renderRecent(state.recent || []);
@@ -88,6 +104,7 @@ function toggleRadar() {
     toggle.classList.remove('open');
     icon.textContent = '▼';
     toggle.querySelector('span:first-child').textContent = '📡 詳細レーダーチャートを見る';
+    sessionStorage.setItem('radarOpen', '0');
   } else {
     wrap.style.display = 'block';
     toggle.classList.add('open');
@@ -97,6 +114,7 @@ function toggleRadar() {
       drawRadar(window._radarStats || {});
       window._radarDrawn = true;
     }
+    sessionStorage.setItem('radarOpen', '1');
   }
 }
 
