@@ -683,6 +683,8 @@ function buildSiteState_() {
     const mField    = String(r[iMission] || '');
     const categoryRaw = iCategory >= 0 ? String(r[iCategory] || '') : '';
     const resultTypeRaw = iResultType >= 0 ? String(r[iResultType] || '') : '';
+    const subjectField = iSubject >= 0 ? String(r[iSubject] || '') : '';
+    const difficultyField = iDifficulty >= 0 ? String(r[iDifficulty] || '') : '';
     const isResult = isResultSubmission_(categoryRaw, resultTypeRaw);
     const category = isResult ? 'result' : 'output';
 
@@ -694,8 +696,10 @@ function buildSiteState_() {
       difficulty = 0;
     } else {
       missionId = extractMissionId_(mField);
-      subject   = subjectFromId_(missionId);
-      difficulty = difficultyFromId_(missionId);
+      // 「教科」「難易度」列を優先、無ければmission IDから推測
+      subject = subjectField || subjectFromId_(missionId);
+      const starMatch = difficultyField.match(/(\d+)/);
+      difficulty = starMatch ? parseInt(starMatch[1], 10) : difficultyFromId_(missionId);
     }
     const xp = isResult ? XP_RESULT_FIXED : (XP_BY_STAR_OUTPUT[difficulty] || 0);
 
