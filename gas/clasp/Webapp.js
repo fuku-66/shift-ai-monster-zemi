@@ -142,7 +142,7 @@ function ensureResultForm_(forceRebuild) {
 
   form.addMultipleChoiceItem()
     .setTitle('上記の内容で外部公開することに同意しますか？')
-    .setHelpText('「同意しません」を選択した場合、提出内容は記録のみで Discord 通知やサイト公開、XP加算は行われません。')
+    .setHelpText('XPは同意の有無に関わらず加算されます。「同意しません」を選択した場合、Discord通知やサイトでの公開はされません。')
     .setChoiceValues(['同意します', '同意しません'])
     .setRequired(true);
 
@@ -435,6 +435,8 @@ function buildSiteState_() {
   const iComment   = col('ひとこと');
   const iEmail     = col('メールアドレス');
   const iApproved  = col('承認');
+  let iConsent = findCol_(header, '同意');
+  if (iConsent < 0) iConsent = findCol_(header, '外部公開');
 
   const items = rows.map((r, idx) => {
     const rowIndex = idx + 2;
@@ -473,6 +475,7 @@ function buildSiteState_() {
       url:          iUrl >= 0 ? r[iUrl] || '' : '',
       comment:      iComment >= 0 ? r[iComment] || '' : '',
       approved:     iApproved >= 0 ? isTruthy_(r[iApproved]) : true,  // 承認列なし=自動承認
+      consented:    iConsent >= 0 ? String(r[iConsent] || '').indexOf('同意します') >= 0 : true,
     };
   });
 
@@ -494,6 +497,9 @@ function buildSiteState_() {
   const lvInfo  = calcLv_(totalXp);
   const dom     = determineMonster_(stats, lvInfo.lv);
 
+  // サイト/アーカイブに表示するのは「同意した提出」だけ
+  const visible = approved.filter(x => x.consented);
+
   return {
     stats: stats,
     totalXp: totalXp,
@@ -505,8 +511,8 @@ function buildSiteState_() {
     monsterName: dom.monsterName,
     dominantAxis: dom.axis,
     isBalance: dom.isBalance,
-    recent: approved.slice().sort((a, b) => (b.date > a.date ? 1 : -1)).slice(0, 5),
-    all:    approved.slice().sort((a, b) => (b.date > a.date ? 1 : -1)),
+    recent: visible.slice().sort((a, b) => (b.date > a.date ? 1 : -1)).slice(0, 5),
+    all:    visible.slice().sort((a, b) => (b.date > a.date ? 1 : -1)),
   };
 }
 
@@ -568,14 +574,9 @@ function onFormSubmit(e) {
     const subjectStr   = pickFirst('教科');
     const resultType   = pickFirst('成果の種類');
     const content      = pickFirst('提出内容') || pickFirst('成果の内容') || pickFirst('経緯');
-    const consentRaw   = pickFirst('同意');
+    const consentRaw   = pickFirst('同意') || pickFirst('外部公開');
+    const consented    = !consentRaw || consentRaw.indexOf('同意します') >= 0;
     const isResult     = isResultSubmission_(categoryRaw, resultType);
-
-    // 同意していない成果報告は処理スキップ（XP加算なし・通知なし）
-    if (isResult && consentRaw && consentRaw.indexOf('同意します') < 0) {
-      Logger.log('外部公開に同意しないため、処理をスキップしました: ' + nickname);
-      return;
-    }
 
     // 教科・難易度・XPを確定
     let subject, difficulty, missionId, missionTitle;
@@ -610,6 +611,12 @@ function onFormSubmit(e) {
     const stars = '★'.repeat(difficulty) + '☆'.repeat(5 - difficulty);
     const excerpt = content.length > 120 ? content.substring(0, 120) + '…' : content;
     const state = buildSiteState_();
+
+    // 外部公開に同意しない場合はDiscord通知をスキップ（XPは加算されている）
+    if (!consented) {
+      Logger.log('外部公開に同意なし → Discord通知スキップ: ' + nickname);
+      return;
+    }
 
     const payload = isResult
       ? buildResultPayload_(nickname, missionTitle, subject, stars, xpGained, resultType, excerpt, state)
