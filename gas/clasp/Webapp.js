@@ -131,19 +131,19 @@ function ensureResultForm_(forceRebuild) {
   // 8. ひとこと
   form.addParagraphTextItem().setTitle('ひとこと・質問（任意）');
 
-  // 9. 外部公開への同意（必須）
+  // 9. 外部公開（紹介）への同意（必須）
   form.addSectionHeaderItem()
-    .setTitle('🔓 外部公開への同意（必須）')
+    .setTitle('🔓 SHIFT AIでの紹介への同意（必須）')
     .setHelpText(
       'Discordチャンネルでは、提出があったことを成果の共有として常に通知します。\n' +
-      'この同意確認は、サイト（GitHub Pagesで公開しているアーカイブページ）に提出内容を掲載してよいかを確認するものです。\n\n' +
+      'この同意確認は、SHIFT AIの公式ブログやセミナーなどで、生徒の成果事例として紹介してよいかを確認するものです。\n\n' +
       '・フルネーム・住所・学校名・電話番号などの個人情報は記入しないでください。\n' +
-      '・万一、個人情報が含まれていた場合は、運営側で該当部分を伏せて公開します。'
+      '・万一、個人情報が含まれていた場合は、運営側で該当部分を伏せた上で紹介します。'
     );
 
   form.addMultipleChoiceItem()
-    .setTitle('上記の内容で外部公開することに同意しますか？')
-    .setHelpText('XPと Discord での成果共有は同意の有無に関わらず行われます。「同意しません」を選択した場合、サイト（GitHub Pages）のアーカイブには表示されません。')
+    .setTitle('SHIFT AIの公式ブログ・セミナーなどで成果事例として紹介することに同意しますか？')
+    .setHelpText('XPの加算と Discord での成果共有は同意の有無に関わらず行われます。「同意しません」を選択した場合、SHIFT AIの外部発信での紹介には使用しません。')
     .setChoiceValues(['同意します', '同意しません'])
     .setRequired(true);
 
@@ -498,9 +498,8 @@ function buildSiteState_() {
   const lvInfo  = calcLv_(totalXp);
   const dom     = determineMonster_(stats, lvInfo.lv);
 
-  // サイト/アーカイブに表示するのは「同意した提出」だけ
-  const visible = approved.filter(x => x.consented);
-
+  // GitHub Pagesアーカイブは内部運用ツールなので全員表示
+  // 同意フラグはSHIFT AIブログ/セミナーでの外部紹介の可否のみ管理（人手運用）
   return {
     stats: stats,
     totalXp: totalXp,
@@ -512,8 +511,8 @@ function buildSiteState_() {
     monsterName: dom.monsterName,
     dominantAxis: dom.axis,
     isBalance: dom.isBalance,
-    recent: visible.slice().sort((a, b) => (b.date > a.date ? 1 : -1)).slice(0, 5),
-    all:    visible.slice().sort((a, b) => (b.date > a.date ? 1 : -1)),
+    recent: approved.slice().sort((a, b) => (b.date > a.date ? 1 : -1)).slice(0, 5),
+    all:    approved.slice().sort((a, b) => (b.date > a.date ? 1 : -1)),
   };
 }
 
