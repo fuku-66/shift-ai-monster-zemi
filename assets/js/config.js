@@ -4,7 +4,7 @@
  */
 window.MZ_CONFIG = {
   GAS_URL: 'https://script.google.com/macros/s/AKfycbymsygunqf9qsKePt1ALguS9DFcmfa3llaOqAXtURDhlYNZplSwk0kLpq2pI30eyEKz/exec',
-  FORM_URL: 'PUT_YOUR_GOOGLE_FORM_URL_HERE', // GASエディタで createSubmitForm() を実行後に更新
+  FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSeAiK5wkLzpEpZuzdkTdp5-PFzvXD1kqb5pSU4Sj9LTIcVWZw/viewform',
 
   EVOLUTION: [
     { lv: 1, name: 'タマゴ', xpStart: 0,    monsterKey: 'egg' },

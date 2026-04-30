@@ -49,10 +49,67 @@ function doGet(e) {
     if (action === 'createForm')  return jsonOut_(ensureSubmitForm_());
     if (action === 'rebuildForm') return jsonOut_(ensureSubmitForm_(true));
     if (action === 'formInfo')    return jsonOut_(getFormInfo_());
+    if (action === 'setupSheet') return jsonOut_(setupSheetSilent_());
+    if (action === 'installTriggers') return jsonOut_(installTriggersSilent_());
     return jsonOut_(buildSiteState_());
   } catch (err) {
     return jsonOut_({ error: String(err) });
   }
+}
+
+// HTTP経由で実行可能（UIアラートなし）
+function setupSheetSilent_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(SHEET_LOG);
+  if (!sh) sh = ss.insertSheet(SHEET_LOG);
+
+  const requiredHeaders = ['カテゴリ', '教科', '難易度', '成果の種類', '承認', 'フィードバック', '通知済'];
+  const added = [];
+
+  if (sh.getLastRow() === 0) {
+    const fullHeaders = [
+      'タイムスタンプ', 'メールアドレス', 'ニックネーム',
+      'カテゴリ', '挑戦した課題', '教科', '難易度', '成果の種類',
+      '提出内容', '提出ファイル', '参考URL（任意）', 'ひとこと・質問（任意）',
+      '承認', 'フィードバック', '通知済',
+    ];
+    sh.getRange(1, 1, 1, fullHeaders.length).setValues([fullHeaders]);
+    sh.getRange(1, 1, 1, fullHeaders.length).setFontWeight('bold').setBackground('#F1C40F');
+    fullHeaders.forEach(h => added.push(h));
+  } else {
+    const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    requiredHeaders.forEach(h => {
+      if (header.indexOf(h) === -1) {
+        const newCol = sh.getLastColumn() + 1;
+        sh.getRange(1, newCol).setValue(h);
+        sh.getRange(1, newCol).setFontWeight('bold').setBackground('#F1C40F');
+        added.push(h);
+      }
+    });
+  }
+
+  const lastRow = Math.max(1000, sh.getMaxRows());
+  const headerNow = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  const iApproved = headerNow.indexOf('承認') + 1;
+  const iNotified = headerNow.indexOf('通知済') + 1;
+  const cb = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+  if (iApproved > 0) sh.getRange(2, iApproved, lastRow - 1, 1).setDataValidation(cb);
+  if (iNotified > 0) {
+    sh.getRange(2, iNotified, lastRow - 1, 1).setDataValidation(cb);
+    try { sh.hideColumns(iNotified); } catch (e) {}
+  }
+  return { ok: true, addedHeaders: added };
+}
+
+function installTriggersSilent_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  ScriptApp.getProjectTriggers().forEach(t => {
+    const fn = t.getHandlerFunction();
+    if (fn === 'onApprovalEdit' || fn === 'onFormSubmit') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('onApprovalEdit').forSpreadsheet(ss).onEdit().create();
+  ScriptApp.newTrigger('onFormSubmit').forSpreadsheet(ss).onFormSubmit().create();
+  return { ok: true, triggers: ['onApprovalEdit', 'onFormSubmit'] };
 }
 
 function jsonOut_(obj) {
