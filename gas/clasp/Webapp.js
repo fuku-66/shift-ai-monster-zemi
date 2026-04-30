@@ -135,14 +135,15 @@ function ensureResultForm_(forceRebuild) {
   form.addSectionHeaderItem()
     .setTitle('🔓 外部公開への同意（必須）')
     .setHelpText(
-      '提出内容（タイトル・成果の種類・成果の内容・参考URL）は、Discordチャンネルおよびサイト内アーカイブに公開されます。\n\n' +
+      'Discordチャンネルでは、提出があったことを成果の共有として常に通知します。\n' +
+      'この同意確認は、サイト（GitHub Pagesで公開しているアーカイブページ）に提出内容を掲載してよいかを確認するものです。\n\n' +
       '・フルネーム・住所・学校名・電話番号などの個人情報は記入しないでください。\n' +
       '・万一、個人情報が含まれていた場合は、運営側で該当部分を伏せて公開します。'
     );
 
   form.addMultipleChoiceItem()
     .setTitle('上記の内容で外部公開することに同意しますか？')
-    .setHelpText('XPは同意の有無に関わらず加算されます。「同意しません」を選択した場合、Discord通知やサイトでの公開はされません。')
+    .setHelpText('XPと Discord での成果共有は同意の有無に関わらず行われます。「同意しません」を選択した場合、サイト（GitHub Pages）のアーカイブには表示されません。')
     .setChoiceValues(['同意します', '同意しません'])
     .setRequired(true);
 
@@ -612,12 +613,7 @@ function onFormSubmit(e) {
     const excerpt = content.length > 120 ? content.substring(0, 120) + '…' : content;
     const state = buildSiteState_();
 
-    // 外部公開に同意しない場合はDiscord通知をスキップ（XPは加算されている）
-    if (!consented) {
-      Logger.log('外部公開に同意なし → Discord通知スキップ: ' + nickname);
-      return;
-    }
-
+    // Discord通知は同意の有無に関わらず実行（内部チャットでの成果共有）
     const payload = isResult
       ? buildResultPayload_(nickname, missionTitle, subject, stars, xpGained, resultType, excerpt, state)
       : buildOutputPayload_(nickname, missionTitle, subject, stars, xpGained, excerpt, state);
