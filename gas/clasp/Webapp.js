@@ -714,7 +714,7 @@ function buildSiteState_() {
       content:      r[iContent] || '',
       url:          iUrl >= 0 ? r[iUrl] || '' : '',
       comment:      iComment >= 0 ? r[iComment] || '' : '',
-      approved:     iApproved >= 0 ? isTruthy_(r[iApproved]) : true,  // 承認列なし=自動承認
+      approved:     iApproved >= 0 ? isApproved_(r[iApproved]) : true,  // 空 or TRUE = 即時承認、FALSE のみ取り消し
       consented:    iConsent >= 0 ? String(r[iConsent] || '').indexOf('同意します') >= 0 : true,
     };
   });
@@ -1029,6 +1029,14 @@ function isTruthy_(v) {
   if (v === true) return true;
   const s = String(v).toLowerCase().trim();
   return s === 'true' || s === '1' || s === 'yes' || s === '✓' || s === '☑' || s === '✅';
+}
+// 空 or TRUE系 → 承認 / 明示的にFALSE系 → 不承認（XP取消）
+function isApproved_(v) {
+  if (v === false) return false;
+  const s = String(v).toLowerCase().trim();
+  if (s === '') return true;
+  if (s === 'false' || s === '0' || s === 'no' || s === '✗' || s === '☒' || s === '❌') return false;
+  return true;
 }
 function formatDate_(v) {
   if (!v) return '';
