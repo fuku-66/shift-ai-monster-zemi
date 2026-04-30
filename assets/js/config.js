@@ -4,7 +4,10 @@
  */
 window.MZ_CONFIG = {
   GAS_URL: 'https://script.google.com/macros/s/AKfycbymsygunqf9qsKePt1ALguS9DFcmfa3llaOqAXtURDhlYNZplSwk0kLpq2pI30eyEKz/exec',
+  // 📦 成果物用フォーム（25課題の提出）
   FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSeAiK5wkLzpEpZuzdkTdp5-PFzvXD1kqb5pSU4Sj9LTIcVWZw/viewform',
+  // 🏆 成果報告用フォーム（受賞・点数アップ等）
+  FORM_URL_RESULT: 'https://docs.google.com/forms/d/e/1FAIpQLSdgpi-4JtvMSWAcnSDKeZyv4T7KzSBefTybMwcu_FnFOjInoA/viewform',
 
   EVOLUTION: [
     { lv: 1, name: 'タマゴ', xpStart: 0,    monsterKey: 'egg' },

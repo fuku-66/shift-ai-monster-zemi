@@ -51,10 +51,103 @@ function doGet(e) {
     if (action === 'formInfo')    return jsonOut_(getFormInfo_());
     if (action === 'setupSheet') return jsonOut_(setupSheetSilent_());
     if (action === 'installTriggers') return jsonOut_(installTriggersSilent_());
+    if (action === 'rebuildResultForm') return jsonOut_(ensureResultForm_(true));
+    if (action === 'createResultForm') return jsonOut_(ensureResultForm_());
     return jsonOut_(buildSiteState_());
   } catch (err) {
     return jsonOut_({ error: String(err) });
   }
+}
+
+/* 成果報告 専用フォーム（成果物フォームと別） */
+function ensureResultForm_(forceRebuild) {
+  const props = PropertiesService.getScriptProperties();
+  const existingId = props.getProperty('RESULT_FORM_ID');
+  if (existingId && !forceRebuild) {
+    try {
+      const f = FormApp.openById(existingId);
+      return { ok: true, formUrl: f.getPublishedUrl(), editUrl: f.getEditUrl(), reused: true };
+    } catch (err) {
+      props.deleteProperty('RESULT_FORM_ID');
+    }
+  }
+  if (existingId && forceRebuild) {
+    try { DriveApp.getFileById(existingId).setTrashed(true); } catch (e) {}
+    props.deleteProperty('RESULT_FORM_ID');
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const form = FormApp.create('🏆 SHIFT AI ジュニア 成果報告フォーム');
+  form.setDescription(
+    '🏆 成果報告（XP×3倍）\n\n' +
+    'コンテスト入賞・受賞・成績アップ・点数アップ・採用などの実績を報告できます。\n' +
+    '通常の成果物提出（AIで作ったもの）は別フォームから提出してね。'
+  );
+  form.setCollectEmail(true);
+
+  // 1. ニックネーム
+  form.addTextItem()
+    .setTitle('ニックネーム（Discordと同じ名前）')
+    .setRequired(true);
+
+  // 2. タイトル（何の成果か）
+  form.addParagraphTextItem()
+    .setTitle('タイトル（何の成果か）')
+    .setHelpText('例: 「英検3級合格」「学校絵画展で金賞」「数学テスト80点→90点」')
+    .setRequired(true);
+
+  // 3. 教科
+  form.addMultipleChoiceItem()
+    .setTitle('📚 教科')
+    .setHelpText('5教科のどれに最も近いか選んでね')
+    .setChoiceValues(['AI基礎', '英語', '数学', '勉強法', 'クリエイティブ'])
+    .setRequired(true);
+
+  // 4. 難易度（自己申告）
+  form.addMultipleChoiceItem()
+    .setTitle('⭐ 難易度（自己申告）')
+    .setHelpText('★1=やさしい / ★3=ふつう / ★5=チャレンジ。自己評価で選んでね')
+    .setChoiceValues(['★1 やさしい', '★2', '★3 ふつう', '★4', '★5 チャレンジ'])
+    .setRequired(true);
+
+  // 5. 成果の種類
+  form.addMultipleChoiceItem()
+    .setTitle('🏅 成果の種類')
+    .setHelpText('一番近いものを選んでね')
+    .setChoiceValues([
+      'コンテスト入賞', '受賞', '外部評価', '採用実績',
+      '成績アップ', '点数アップ', 'その他',
+    ])
+    .showOtherOption(true)
+    .setRequired(true);
+
+  // 6. 経緯・詳細
+  form.addParagraphTextItem()
+    .setTitle('経緯・詳細')
+    .setHelpText('どんな取り組みで達成したか・使ったAI・工夫した点・期間など')
+    .setRequired(true);
+
+  // 7. 証拠ファイル
+  try {
+    form.addFileUploadItem()
+      .setTitle('証拠ファイル（任意・賞状の写真・成績表・受賞ページのスクショなど）')
+      .setRequired(false);
+  } catch (e) {
+    Logger.log('ファイルアップロード追加に失敗: ' + e);
+  }
+
+  // 8. 証拠URL
+  form.addTextItem()
+    .setTitle('証拠URL（任意）')
+    .setHelpText('受賞ページ・コンテスト結果ページのリンクなど。あると説得力UP');
+
+  // 9. ひとこと
+  form.addParagraphTextItem()
+    .setTitle('ひとこと・質問（任意）');
+
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
+  props.setProperty('RESULT_FORM_ID', form.getId());
+  return { ok: true, formUrl: form.getPublishedUrl(), editUrl: form.getEditUrl(), reused: false };
 }
 
 // HTTP経由で実行可能（UIアラートなし）
@@ -390,7 +483,8 @@ function buildSiteState_() {
     const rowIndex = idx + 2;
     const mField    = String(r[iMission] || '');
     const categoryRaw = iCategory >= 0 ? String(r[iCategory] || '') : '';
-    const isResult = categoryRaw.indexOf('成果') >= 0 && categoryRaw.indexOf('成果物') < 0;
+    const resultTypeRaw = iResultType >= 0 ? String(r[iResultType] || '') : '';
+    const isResult = isResultSubmission_(categoryRaw, resultTypeRaw);
     const category = isResult ? 'result' : 'output';
 
     let missionId, subject, difficulty;
@@ -509,12 +603,13 @@ function onFormSubmit(e) {
 
     const nickname     = pickFirst('ニックネーム') || 'ゲスト';
     const categoryRaw  = pickFirst('カテゴリ');
-    const isResult     = categoryRaw.indexOf('成果') >= 0 && categoryRaw.indexOf('成果物') < 0;
-    const missionField = pickFirst('挑戦した課題');
+    const titleField   = pickFirst('タイトル');
+    const missionField = pickFirst('挑戦した課題') || titleField;
     const subjectStr   = pickFirst('教科');
     const diffStr      = pickFirst('難易度');
     const resultType   = pickFirst('成果の種類');
-    const content      = pickFirst('提出内容');
+    const content      = pickFirst('提出内容') || pickFirst('経緯');
+    const isResult     = isResultSubmission_(categoryRaw, resultType);
 
     // 教科・難易度を確定
     let subject, difficulty, missionId, missionTitle;
@@ -631,7 +726,8 @@ function onApprovalEdit(e) {
     const nickname = pick('ニックネーム') || 'ゲスト';
     const missionField = pick('挑戦した課題') || '';
     const categoryRaw = String(pick('カテゴリ') || '');
-    const isResult = categoryRaw.indexOf('成果') >= 0 && categoryRaw.indexOf('成果物') < 0;
+    const resultTypeRaw = String(pick('成果の種類') || '');
+    const isResult = isResultSubmission_(categoryRaw, resultTypeRaw);
 
     let subject, difficulty;
     if (isResult) {
@@ -710,6 +806,13 @@ function difficultyFromId_(id) {
   const n = parseInt(last, 10);
   return (n >= 1 && n <= 5) ? n : 1;
 }
+function isResultSubmission_(categoryRaw, resultType) {
+  const cat = String(categoryRaw || '');
+  if (cat.indexOf('成果') >= 0 && cat.indexOf('成果物') < 0) return true;
+  if (resultType && String(resultType).trim().length > 0) return true;
+  return false;
+}
+
 function isTruthy_(v) {
   if (v === true) return true;
   const s = String(v).toLowerCase().trim();

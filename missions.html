@@ -267,25 +267,12 @@ function buildPrefilledUrl(mission) {
   return formUrl;
 }
 
-function buildResultUrl() {
-  const cfg = window.MZ_CONFIG;
-  const formUrl = (FORM_INFO && FORM_INFO.formUrl) || cfg.FORM_URL;
-  if (!formUrl || formUrl.includes('PUT_YOUR')) return null;
-  if (FORM_INFO && FORM_INFO.entries && FORM_INFO.entries.category) {
-    const params = new URLSearchParams();
-    params.set('usp', 'pp_url');
-    params.set(FORM_INFO.entries.category, '🏆 成果');
-    const sep = formUrl.includes('?') ? '&' : '?';
-    return formUrl + sep + params.toString();
-  }
-  return formUrl;
-}
-
 function updateResultCta() {
   const a = document.getElementById('result-cta');
   if (!a) return;
-  const url = buildResultUrl();
-  if (url) {
+  // 専用「🏆 成果報告フォーム」に飛ばす
+  const url = (window.MZ_CONFIG && window.MZ_CONFIG.FORM_URL_RESULT) || '';
+  if (url && !url.includes('PUT_YOUR')) {
     a.href = url;
     a.style.display = '';
   } else {
