@@ -96,14 +96,7 @@ function ensureResultForm_(forceRebuild) {
     .setHelpText('例：「英検3級合格」「校内絵画展で金賞」「数学テスト80点→90点」')
     .setRequired(true);
 
-  // 3. 教科
-  form.addMultipleChoiceItem()
-    .setTitle('📚 教科')
-    .setHelpText('5教科のうち、最も近いものを選択してください。')
-    .setChoiceValues(['AI基礎', '英語', '数学', '勉強法', 'クリエイティブ'])
-    .setRequired(true);
-
-  // 4. 成果の種類
+  // 3. 成果の種類
   form.addMultipleChoiceItem()
     .setTitle('🏅 成果の種類')
     .setHelpText('最も近いものを1つ選択してください。')
@@ -149,7 +142,8 @@ function ensureResultForm_(forceRebuild) {
 
   form.addMultipleChoiceItem()
     .setTitle('上記の内容で外部公開することに同意しますか？')
-    .setChoiceValues(['同意します'])
+    .setHelpText('「同意しません」を選択した場合、提出内容は記録のみで Discord 通知やサイト公開、XP加算は行われません。')
+    .setChoiceValues(['同意します', '同意しません'])
     .setRequired(true);
 
   form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
@@ -353,20 +347,6 @@ function ensureSubmitForm_(forceRebuild) {
   // 6. ひとこと
   form.addParagraphTextItem().setTitle('ひとこと・質問（任意）');
 
-  // 7. 外部公開への同意（必須）
-  form.addSectionHeaderItem()
-    .setTitle('🔓 外部公開への同意（必須）')
-    .setHelpText(
-      '提出内容（挑戦した課題・提出内容・参考URL）は、Discordチャンネルおよびサイト内アーカイブに公開されます。\n\n' +
-      '・フルネーム・住所・学校名・電話番号などの個人情報は記入しないでください。\n' +
-      '・万一、個人情報が含まれていた場合は、運営側で該当部分を伏せて公開します。'
-    );
-
-  form.addMultipleChoiceItem()
-    .setTitle('上記の内容で外部公開することに同意しますか？')
-    .setChoiceValues(['同意します'])
-    .setRequired(true);
-
   form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
   props.setProperty('FORM_ID', form.getId());
   return { ok: true, formUrl: form.getPublishedUrl(), editUrl: form.getEditUrl(), reused: false };
@@ -466,14 +446,10 @@ function buildSiteState_() {
 
     let missionId, subject, difficulty;
     if (isResult) {
-      // 成果: 自己申告の教科・難易度を使う
-      const subjectStr = iSubject >= 0 ? String(r[iSubject] || '').trim() : '';
-      const diffStr = iDifficulty >= 0 ? String(r[iDifficulty] || '').trim() : '';
-      const diffNum = parseInt((diffStr.match(/[1-5]/) || ['1'])[0], 10);
-      const subjCode = SUBJECT_TO_CODE[subjectStr] || 'a';
-      missionId = 'r-' + subjCode + '0' + diffNum;
-      subject = subjectStr || subjectFromId_(missionId);
-      difficulty = diffNum;
+      // 成果: 教科関係なく全教科に均等加算（subject='全教科'）
+      missionId = 'r-all';
+      subject = '全教科';
+      difficulty = 0;
     } else {
       missionId = extractMissionId_(mField);
       subject   = subjectFromId_(missionId);
@@ -502,9 +478,16 @@ function buildSiteState_() {
 
   const approved = items.filter(x => x.approved);
   const stats = zeroStats_();
+  const axisKeys = ['ai', 'eng', 'math', 'study', 'creative'];
   approved.forEach(x => {
-    const k = AXIS_KEY[x.subject];
-    if (k) stats[k] += x.xp;
+    if (x.category === 'result') {
+      // 成果は5軸均等加算（XP / 5 ずつ）
+      const perAxis = x.xp / axisKeys.length;
+      axisKeys.forEach(k => { stats[k] += perAxis; });
+    } else {
+      const k = AXIS_KEY[x.subject];
+      if (k) stats[k] += x.xp;
+    }
   });
 
   const totalXp = stats.ai + stats.eng + stats.math + stats.study + stats.creative;
@@ -583,19 +566,23 @@ function onFormSubmit(e) {
     const titleField   = pickFirst('タイトル');
     const missionField = pickFirst('挑戦した課題') || titleField;
     const subjectStr   = pickFirst('教科');
-    const diffStr      = pickFirst('難易度');
     const resultType   = pickFirst('成果の種類');
     const content      = pickFirst('提出内容') || pickFirst('成果の内容') || pickFirst('経緯');
+    const consentRaw   = pickFirst('同意');
     const isResult     = isResultSubmission_(categoryRaw, resultType);
 
-    // 教科・難易度を確定
+    // 同意していない成果報告は処理スキップ（XP加算なし・通知なし）
+    if (isResult && consentRaw && consentRaw.indexOf('同意します') < 0) {
+      Logger.log('外部公開に同意しないため、処理をスキップしました: ' + nickname);
+      return;
+    }
+
+    // 教科・難易度・XPを確定
     let subject, difficulty, missionId, missionTitle;
     if (isResult) {
-      subject = subjectStr || 'AI基礎';
-      const diffNum = parseInt((diffStr.match(/[1-5]/) || ['1'])[0], 10);
-      difficulty = diffNum;
-      const subjCode = SUBJECT_TO_CODE[subject] || 'a';
-      missionId = 'r-' + subjCode + '0' + diffNum;
+      subject = '全教科';
+      difficulty = 0;
+      missionId = 'r-all';
       missionTitle = missionField;
     } else {
       missionId = extractMissionId_(missionField);
@@ -663,7 +650,7 @@ function buildResultPayload_(nickname, title, subject, stars, xp, resultType, ex
         '🎉 **' + nickname + '** さんが成果を達成しました！\n\n' +
         '🏆 **' + title + '**\n' +
         (resultType ? '🏅 ' + resultType + '\n' : '') +
-        '📚 ' + subject,
+        '📚 5教科ぜんぶに均等加算',
       color: 0xF1C40F,
       fields: [
         { name: '📝 成果の内容（抜粋）', value: excerpt || '(内容なし)', inline: false },
