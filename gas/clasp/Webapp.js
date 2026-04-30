@@ -53,6 +53,9 @@ function doGet(e) {
     if (action === 'installTriggers') return jsonOut_(installTriggersSilent_());
     if (action === 'rebuildResultForm') return jsonOut_(ensureResultForm_(true));
     if (action === 'createResultForm') return jsonOut_(ensureResultForm_());
+    if (action === 'inspectSheets') return jsonOut_(inspectSheets_());
+    if (action === 'buildHub') return jsonOut_(buildHubSheet_());
+    if (action === 'cleanup') return jsonOut_(cleanupSheets_());
     return jsonOut_(buildSiteState_());
   } catch (err) {
     return jsonOut_({ error: String(err) });
@@ -152,13 +155,203 @@ function ensureResultForm_(forceRebuild) {
   return { ok: true, formUrl: form.getPublishedUrl(), editUrl: form.getEditUrl(), reused: false };
 }
 
+// スプシをクリーンアップ（古い「フォームの回答」シート削除/隠し + 提出ログ初期化）
+function cleanupSheets_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const removed = [];
+  const hidden = [];
+  const errors = [];
+  const props = PropertiesService.getScriptProperties();
+  const currentFormId = props.getProperty('FORM_ID');
+  const currentResultFormId = props.getProperty('RESULT_FORM_ID');
+
+  // 古いフォーム連携シートをすべて処理
+  ss.getSheets().slice().forEach(sh => {
+    const name = sh.getName();
+    if (name.indexOf('フォームの回答') !== 0) return;
+
+    // フォームURLからIDを抽出
+    let linkedFormId = '';
+    try {
+      const formUrl = sh.getFormUrl && sh.getFormUrl();
+      if (formUrl) {
+        const m = formUrl.match(/\/forms\/d\/([^\/]+)/);
+        if (m) linkedFormId = m[1];
+      }
+    } catch (e) {}
+
+    // 現在使用中のフォーム（成果物・成果報告）に紐付くシートはスキップ
+    if (linkedFormId && (linkedFormId === currentFormId || linkedFormId === currentResultFormId)) {
+      return;
+    }
+
+    // それ以外は destination を解除して削除
+    if (linkedFormId) {
+      try {
+        FormApp.openById(linkedFormId).removeDestination();
+      } catch (e) {
+        // フォーム自体がゴミ箱にある等。シート単独で削除を試行
+      }
+    }
+
+    try {
+      ss.deleteSheet(sh);
+      removed.push(name);
+    } catch (e) {
+      // 削除できない場合は隠す
+      try {
+        sh.clear();
+        sh.hideSheet();
+        sh.setName('_archived_' + name + '_' + new Date().getTime());
+        hidden.push(name);
+      } catch (e2) {
+        errors.push(name + ': ' + e2);
+      }
+    }
+  });
+
+  // 提出ログのデータ行をクリア（ヘッダーだけ残す）
+  const log = ss.getSheetByName(SHEET_LOG);
+  let cleared = 0;
+  if (log && log.getLastRow() > 1) {
+    cleared = log.getLastRow() - 1;
+    log.getRange(2, 1, cleared, log.getLastColumn()).clearContent();
+  }
+
+  return { ok: true, removedSheets: removed, hiddenSheets: hidden, logRowsCleared: cleared, errors };
+}
+
+// 提出ログシートに行を追加（カラム名で柔軟マッピング）
+function appendToLog_(sh, data) {
+  const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  const row = new Array(header.length).fill('');
+  const setVal = (name, val) => {
+    const i = header.findIndex(h => String(h).indexOf(name) >= 0);
+    if (i >= 0) row[i] = val;
+  };
+  setVal('タイムスタンプ', data.timestamp);
+  setVal('メールアドレス', data.email);
+  setVal('ニックネーム', data.nickname);
+  setVal('カテゴリ', data.category);
+  setVal('挑戦した課題', data.mission);
+  setVal('教科', data.subject);
+  setVal('難易度', data.difficulty);
+  setVal('成果の種類', data.resultType);
+  setVal('提出内容', data.content);
+  setVal('参考URL', data.url);
+  setVal('ひとこと', data.comment);
+  setVal('同意', data.consent);
+  setVal('承認', data.approved);
+  setVal('通知済', data.notified);
+  sh.appendRow(row);
+}
+
+// シート一覧と各シートの行数を返す
+function inspectSheets_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  return {
+    ssId: ss.getId(),
+    ssUrl: ss.getUrl(),
+    sheets: ss.getSheets().map(sh => ({
+      name: sh.getName(),
+      gid: sh.getSheetId(),
+      rows: sh.getLastRow(),
+      cols: sh.getLastColumn(),
+    }))
+  };
+}
+
+// 📎 リンク集（ハブシート）を生成
+function buildHubSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let hub = ss.getSheetByName('📎 リンク集');
+  if (!hub) hub = ss.insertSheet('📎 リンク集', 0);
+  hub.clear();
+  hub.setTabColor('#F1C40F');
+
+  const props = PropertiesService.getScriptProperties();
+  const formId = props.getProperty('FORM_ID');
+  const resultFormId = props.getProperty('RESULT_FORM_ID');
+  const scriptId = ScriptApp.getScriptId();
+  const ssId = ss.getId();
+
+  let outputForm = null, resultForm = null, outputSheetUrl = '', resultSheetUrl = '';
+  try {
+    if (formId) {
+      outputForm = FormApp.openById(formId);
+      const dest = outputForm.getDestinationId();
+      if (dest === ssId) {
+        // フォームの保存先シートを探す
+        ss.getSheets().forEach(sh => {
+          if (sh.getFormUrl && sh.getFormUrl() && sh.getFormUrl().indexOf(formId) >= 0) {
+            outputSheetUrl = ss.getUrl() + '#gid=' + sh.getSheetId();
+          }
+        });
+      }
+    }
+  } catch (e) {}
+  try {
+    if (resultFormId) {
+      resultForm = FormApp.openById(resultFormId);
+      ss.getSheets().forEach(sh => {
+        if (sh.getFormUrl && sh.getFormUrl() && sh.getFormUrl().indexOf(resultFormId) >= 0) {
+          resultSheetUrl = ss.getUrl() + '#gid=' + sh.getSheetId();
+        }
+      });
+    }
+  } catch (e) {}
+
+  const ssBaseUrl = ss.getUrl();
+  const rows = [
+    ['カテゴリ', '項目', 'URL'],
+    ['🌐 公開', '公開サイト（GitHub Pages）', 'https://fuku-66.github.io/shift-ai-monster-zemi/'],
+    ['🌐 公開', 'GitHubリポジトリ', 'https://github.com/fuku-66/shift-ai-monster-zemi'],
+    ['📦 成果物', '提出フォーム（生徒共有用）', outputForm ? outputForm.getPublishedUrl() : '(未作成)'],
+    ['📦 成果物', 'フォーム編集画面', outputForm ? outputForm.getEditUrl() : '(未作成)'],
+    ['📦 成果物', '提出データの保存先シート', outputSheetUrl || '(未送信のため未生成)'],
+    ['🏆 成果報告', '報告フォーム（生徒共有用）', resultForm ? resultForm.getPublishedUrl() : '(未作成)'],
+    ['🏆 成果報告', 'フォーム編集画面', resultForm ? resultForm.getEditUrl() : '(未作成)'],
+    ['🏆 成果報告', '報告データの保存先シート', resultSheetUrl || '(未送信のため未生成)'],
+    ['🛠️ 管理', '管理スプシ（このファイル）', ssBaseUrl],
+    ['🛠️ 管理', 'GASエディタ', 'https://script.google.com/d/' + scriptId + '/edit'],
+    ['🛠️ 管理', 'GAS WebApp（API endpoint）', ScriptApp.getService().getUrl() || ''],
+  ];
+
+  // 既存シート一覧
+  rows.push(['', '', '']);
+  rows.push(['📊 シート一覧', '', '']);
+  ss.getSheets().forEach(sh => {
+    if (sh.getName() === '📎 リンク集') return;
+    const isFormBound = sh.getFormUrl && sh.getFormUrl();
+    const tag = isFormBound ? '（フォーム連携）' : '';
+    rows.push(['', sh.getName() + tag + ' ' + sh.getLastRow() + '行', ssBaseUrl + '#gid=' + sh.getSheetId()]);
+  });
+
+  hub.getRange(1, 1, rows.length, 3).setValues(rows);
+  hub.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#F1C40F').setFontColor('#000');
+  hub.setColumnWidth(1, 110);
+  hub.setColumnWidth(2, 280);
+  hub.setColumnWidth(3, 600);
+  hub.setFrozenRows(1);
+
+  // 一番左に移動
+  ss.setActiveSheet(hub);
+  ss.moveActiveSheet(1);
+
+  return {
+    ok: true,
+    hubUrl: ssBaseUrl + '#gid=' + hub.getSheetId(),
+    rowCount: rows.length,
+  };
+}
+
 // HTTP経由で実行可能（UIアラートなし）
 function setupSheetSilent_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(SHEET_LOG);
   if (!sh) sh = ss.insertSheet(SHEET_LOG);
 
-  const requiredHeaders = ['カテゴリ', '教科', '難易度', '成果の種類', '承認', 'フィードバック', '通知済'];
+  const requiredHeaders = ['カテゴリ', '教科', '難易度', '成果の種類', '同意', '承認', 'フィードバック', '通知済'];
   const added = [];
 
   if (sh.getLastRow() === 0) {
@@ -593,19 +786,26 @@ function onFormSubmit(e) {
     }
     const xpGained = isResult ? XP_RESULT_FIXED : (XP_BY_STAR_OUTPUT[difficulty] || 0);
 
-    // 提出時点で「承認」をTRUEにする（即時XP加算）
+    // 「提出ログ」シートに統合書き込み（成果物・成果報告の両フォームで一元管理）
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sh = findLogSheet_(ss);
-    if (sh) {
-      ensureApprovalCols_(sh);
-      const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
-      const iApproved = header.indexOf('承認') + 1;
-      const iNotified = header.indexOf('通知済') + 1;
-      const lastRow = sh.getLastRow();
-      if (iApproved > 0 && lastRow >= 2) {
-        sh.getRange(lastRow, iApproved).setValue(true);
-        if (iNotified > 0) sh.getRange(lastRow, iNotified).setValue(true);
-      }
+    const log = ss.getSheetByName(SHEET_LOG);
+    if (log) {
+      appendToLog_(log, {
+        timestamp: new Date(),
+        email: pickFirst('メール'),
+        nickname: nickname,
+        category: isResult ? '🏆 成果' : '📦 成果物',
+        mission: missionTitle,
+        subject: isResult ? '全教科' : subject,
+        difficulty: isResult ? '' : ('★' + difficulty),
+        resultType: resultType,
+        content: content,
+        url: pickFirst('参考URL'),
+        comment: pickFirst('ひとこと'),
+        consent: consentRaw,
+        approved: true,
+        notified: true,
+      });
     }
 
     const stars = '★'.repeat(difficulty) + '☆'.repeat(5 - difficulty);

@@ -5,9 +5,9 @@
 window.MZ_CONFIG = {
   GAS_URL: 'https://script.google.com/macros/s/AKfycbymsygunqf9qsKePt1ALguS9DFcmfa3llaOqAXtURDhlYNZplSwk0kLpq2pI30eyEKz/exec',
   // 📦 成果物用フォーム（25課題の提出）
-  FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSc_A9d8IZt1lO54Qh1zCud7rlllYwMyVmuVOctzMF6WHMRPOQ/viewform',
+  FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSfrrg3ZbvEhDcLwyamI3y6yHLwLgm0Ld47VX-QN2VF5N0G4sg/viewform',
   // 🏆 成果報告用フォーム（受賞・点数アップ等）
-  FORM_URL_RESULT: 'https://docs.google.com/forms/d/e/1FAIpQLSc7gKuPZkn1BKpHLjfjnrnB7X132lY7loFVfVf6ch5jqKsrJA/viewform',
+  FORM_URL_RESULT: 'https://docs.google.com/forms/d/e/1FAIpQLSdCtIzUTYHn5_WSyRvpQUX50yHUcdlOtQAvy6Yum16oA6Tg_A/viewform',
 
   EVOLUTION: [
     { lv: 1, name: 'タマゴ', xpStart: 0,    monsterKey: 'egg' },
