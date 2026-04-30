@@ -56,6 +56,7 @@ function doGet(e) {
     if (action === 'inspectSheets') return jsonOut_(inspectSheets_());
     if (action === 'buildHub') return jsonOut_(buildHubSheet_());
     if (action === 'cleanup') return jsonOut_(cleanupSheets_());
+    if (action === 'lockAutoSheets') return jsonOut_(lockAndHideAutoSheets_());
     return jsonOut_(buildSiteState_());
   } catch (err) {
     return jsonOut_({ error: String(err) });
@@ -153,6 +154,51 @@ function ensureResultForm_(forceRebuild) {
   form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
   props.setProperty('RESULT_FORM_ID', form.getId());
   return { ok: true, formUrl: form.getPublishedUrl(), editUrl: form.getEditUrl(), reused: false };
+}
+
+// 現在使用中のフォーム連携シート（フォームの回答 N）を保護＋非表示
+function lockAndHideAutoSheets_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const props = PropertiesService.getScriptProperties();
+  const formId = props.getProperty('FORM_ID');
+  const resultFormId = props.getProperty('RESULT_FORM_ID');
+  const targets = [formId, resultFormId].filter(Boolean);
+  const processed = [];
+  const errors = [];
+
+  ss.getSheets().forEach(sh => {
+    const name = sh.getName();
+    if (name.indexOf('フォームの回答') !== 0) return;
+
+    // 紐付くフォームIDを取得
+    let linkedFormId = '';
+    try {
+      const url = sh.getFormUrl && sh.getFormUrl();
+      if (url) {
+        const m = url.match(/\/forms\/d\/([^\/]+)/);
+        if (m) linkedFormId = m[1];
+      }
+    } catch (e) {}
+    if (!targets.includes(linkedFormId)) return;
+
+    try {
+      // 既存の保護を解除してから新規設定（warning型 = 編集時に警告表示）
+      sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => {
+        try { p.remove(); } catch (e) {}
+      });
+      sh.protect()
+        .setDescription('🔒 フォーム自動バックアップ（システム使用・編集すると壊れる可能性あり）')
+        .setWarningOnly(true);
+
+      // 非表示
+      sh.hideSheet();
+      processed.push(name);
+    } catch (e) {
+      errors.push(name + ': ' + e);
+    }
+  });
+
+  return { ok: true, processed, errors };
 }
 
 // スプシをクリーンアップ（古い「フォームの回答」シート削除/隠し + 提出ログ初期化）
