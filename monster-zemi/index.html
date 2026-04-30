@@ -73,10 +73,47 @@
     </div>
   </section>
 
-  <!-- CTA -->
-  <section class="cta-section">
-    <a href="missions.html" class="btn-primary">⚔️ 課題に挑戦する</a>
+  <!-- CTA: カテゴリ別 -->
+  <section class="category-banner" style="margin-top:24px;margin-bottom:24px;">
+    <a href="missions.html" class="category-card cat-output">
+      <span class="cat-icon">📦</span>
+      <span class="cat-body">
+        <span class="cat-title">成果物を提出</span>
+        <span class="cat-desc">25課題から選んで挑戦（AI画像・文章・スライドなど）</span>
+      </span>
+      <span class="cat-arrow">›</span>
+    </a>
+    <a id="result-cta-home" href="missions.html" class="category-card cat-result">
+      <span class="cat-icon">🏆</span>
+      <span class="cat-body">
+        <span class="cat-title">成果を報告（XP×3倍）</span>
+        <span class="cat-desc">受賞・点数アップ・採用などの実績報告</span>
+      </span>
+      <span class="cat-arrow">›</span>
+    </a>
   </section>
+
+  <script>
+  // ホームから直接「成果報告」フォームに飛ばす
+  (async function() {
+    try {
+      const cfg = window.MZ_CONFIG;
+      if (!cfg || !cfg.GAS_URL || cfg.GAS_URL.includes('PUT_YOUR')) return;
+      const res = await fetch(cfg.GAS_URL + '?action=formInfo');
+      const data = await res.json();
+      if (data.ok && data.formUrl && data.entries && data.entries.category) {
+        const params = new URLSearchParams();
+        params.set('usp', 'pp_url');
+        params.set(data.entries.category, '🏆 成果');
+        const sep = data.formUrl.includes('?') ? '&' : '?';
+        const a = document.getElementById('result-cta-home');
+        if (a) a.href = data.formUrl + sep + params.toString();
+        if (a) a.target = '_blank';
+        if (a) a.rel = 'noopener';
+      }
+    } catch(e) {}
+  })();
+  </script>
 
   <!-- 最新提出 -->
   <section class="recent-section">

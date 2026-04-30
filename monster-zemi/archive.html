@@ -46,6 +46,12 @@
 
 <main class="container">
 
+  <div class="filter-bar" id="cat-filter-bar" style="margin-bottom:10px;">
+    <button class="filter-btn active" data-cat="all">全カテゴリ</button>
+    <button class="filter-btn" data-cat="output">📦 成果物</button>
+    <button class="filter-btn" data-cat="result">🏆 成果</button>
+  </div>
+
   <div class="filter-bar" id="filter-bar">
     <button class="filter-btn active" data-subject="all">すべて</button>
     <button class="filter-btn" data-subject="AI基礎">🤖 AI基礎</button>
@@ -68,7 +74,8 @@
 (async function () {
   const PAGE_SIZE = 20;
   let currentPage = 1;
-  let currentFilter = 'all';
+  let currentSubject = 'all';
+  let currentCategory = 'all';
   let allItems = [];
 
   const state = await window.MZ_API.fetchState();
@@ -79,7 +86,10 @@
   }
 
   function render() {
-    const filtered = currentFilter === 'all' ? allItems : allItems.filter(x => x.subject === currentFilter);
+    let filtered = allItems;
+    if (currentSubject !== 'all') filtered = filtered.filter(x => x.subject === currentSubject);
+    if (currentCategory !== 'all') filtered = filtered.filter(x => (x.category || 'output') === currentCategory);
+
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     if (currentPage > totalPages) currentPage = 1;
     const start = (currentPage - 1) * PAGE_SIZE;
@@ -89,9 +99,18 @@
     if (!items.length) {
       listEl.innerHTML = '<li class="empty">該当する提出がありません</li>';
     } else {
-      listEl.innerHTML = items.map(r => `
-        <li class="recent-item">
+      listEl.innerHTML = items.map(r => {
+        const cat = r.category || 'output';
+        const catBadge = cat === 'result'
+          ? '<span class="cat-badge result">🏆 成果</span>'
+          : '<span class="cat-badge output">📦 成果物</span>';
+        const resultTypeBadge = r.resultType
+          ? ` <span class="cat-badge result">${escapeHtml(r.resultType)}</span>`
+          : '';
+        return `
+        <li class="recent-item" style="border-left-color:${cat==='result' ? '#F1C40F' : '#3498DB'}">
           <div class="recent-meta">
+            ${catBadge}${resultTypeBadge}
             <span class="recent-date">${r.date || ''}</span>
             <span class="recent-subject">${r.subject || ''}</span>
             <span>${'★'.repeat(r.difficulty || 1)}${'☆'.repeat(5 - (r.difficulty || 1))}</span>
@@ -101,7 +120,8 @@
           <div class="recent-mission">${escapeHtml(r.missionTitle || '')}</div>
           ${r.content ? `<div class="recent-comment" style="white-space:pre-wrap;">${escapeHtml(r.content)}</div>` : ''}
         </li>
-      `).join('');
+      `;
+      }).join('');
     }
 
     // ページャー
@@ -121,9 +141,18 @@
 
   document.getElementById('filter-bar').addEventListener('click', (e) => {
     if (!e.target.classList.contains('filter-btn')) return;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
     e.target.classList.add('active');
-    currentFilter = e.target.dataset.subject;
+    currentSubject = e.target.dataset.subject;
+    currentPage = 1;
+    render();
+  });
+
+  document.getElementById('cat-filter-bar').addEventListener('click', (e) => {
+    if (!e.target.classList.contains('filter-btn')) return;
+    document.querySelectorAll('#cat-filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    currentCategory = e.target.dataset.cat;
     currentPage = 1;
     render();
   });

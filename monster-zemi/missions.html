@@ -146,8 +146,18 @@
 <main class="container">
 
   <div class="help-banner">
-    💡 課題を選んで「📝 提出する」を押すと、提出フォームが開きます
+    💡 課題を選んで「📝 提出する」を押すと、提出フォームが開きます<br>
+    🏆 受賞・点数アップ等の<strong>成果</strong>は下のボタンから報告（XP×3倍）
   </div>
+
+  <a id="result-cta" class="result-cta" href="#" target="_blank" rel="noopener">
+    <span class="cta-icon">🏆</span>
+    <span class="cta-text">
+      <strong>成果を報告する</strong>
+      コンテスト入賞・受賞・成績アップ・点数アップ・採用など（XP×3倍）
+    </span>
+    <span class="cta-arrow">›</span>
+  </a>
 
   <div class="filter-bar" id="filter-bar">
     <button class="filter-btn active" data-subject="all">すべて</button>
@@ -191,6 +201,7 @@ let FORM_INFO = null;
 
   await Promise.allSettled([loadMonster(), loadFormInfo()]);
   render('all');
+  updateResultCta();
 
   document.getElementById('filter-bar').addEventListener('click', (e) => {
     if (!e.target.classList.contains('filter-btn')) return;
@@ -241,10 +252,45 @@ function buildPrefilledUrl(mission) {
     const params = new URLSearchParams();
     params.set('usp', 'pp_url');
     params.set(FORM_INFO.entries.mission, display);
+    // カテゴリ=成果物 をプリフィル
+    if (FORM_INFO.entries.category) params.set(FORM_INFO.entries.category, '📦 成果物');
+    // 教科をプリフィル
+    if (FORM_INFO.entries.subject) params.set(FORM_INFO.entries.subject, mission.subject);
+    // 難易度をプリフィル
+    if (FORM_INFO.entries.difficulty) {
+      const diffMap = { 1: '★1 やさしい', 2: '★2', 3: '★3 ふつう', 4: '★4', 5: '★5 チャレンジ' };
+      params.set(FORM_INFO.entries.difficulty, diffMap[mission.difficulty] || '★1 やさしい');
+    }
     const sep = formUrl.includes('?') ? '&' : '?';
     return formUrl + sep + params.toString();
   }
   return formUrl;
+}
+
+function buildResultUrl() {
+  const cfg = window.MZ_CONFIG;
+  const formUrl = (FORM_INFO && FORM_INFO.formUrl) || cfg.FORM_URL;
+  if (!formUrl || formUrl.includes('PUT_YOUR')) return null;
+  if (FORM_INFO && FORM_INFO.entries && FORM_INFO.entries.category) {
+    const params = new URLSearchParams();
+    params.set('usp', 'pp_url');
+    params.set(FORM_INFO.entries.category, '🏆 成果');
+    const sep = formUrl.includes('?') ? '&' : '?';
+    return formUrl + sep + params.toString();
+  }
+  return formUrl;
+}
+
+function updateResultCta() {
+  const a = document.getElementById('result-cta');
+  if (!a) return;
+  const url = buildResultUrl();
+  if (url) {
+    a.href = url;
+    a.style.display = '';
+  } else {
+    a.style.display = 'none';
+  }
 }
 
 function render(filter) {

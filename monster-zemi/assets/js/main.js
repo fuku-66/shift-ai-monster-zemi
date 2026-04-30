@@ -164,9 +164,16 @@ function renderRecent(recent) {
     ul.innerHTML = '<li class="empty">まだ提出がありません。最初の1人になろう！</li>';
     return;
   }
-  ul.innerHTML = recent.map(r => `
-    <li class="recent-item">
+  ul.innerHTML = recent.map(r => {
+    const cat = r.category || 'output';
+    const catBadge = cat === 'result'
+      ? '<span class="cat-badge result">🏆 成果</span>'
+      : '<span class="cat-badge output">📦 成果物</span>';
+    const borderColor = cat === 'result' ? '#F1C40F' : '#3498DB';
+    return `
+    <li class="recent-item" style="border-left-color:${borderColor}">
       <div class="recent-meta">
+        ${catBadge}
         <span class="recent-date">${r.date || ''}</span>
         <span class="recent-subject">${r.subject || ''}</span>
         <span class="recent-xp">+${r.xp || 15} XP</span>
@@ -175,7 +182,8 @@ function renderRecent(recent) {
       <div class="recent-mission">${escapeHtml(r.missionTitle || '')}</div>
       ${r.comment ? `<div class="recent-comment">💬 ${escapeHtml(r.comment)}</div>` : ''}
     </li>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function escapeHtml(s) {
