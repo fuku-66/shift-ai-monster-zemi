@@ -3,17 +3,26 @@
  * デプロイ前にGAS_URLを書き換える
  */
 window.MZ_CONFIG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbymsygunqf9qsKePt1ALguS9DFcmfa3llaOqAXtURDhlYNZplSwk0kLpq2pI30eyEKz/exec',
-  // 📦 成果物用フォーム（25課題の提出）
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxOX6XA8C8mVx2NhdsK0LxysCJD1A-5yUj-phr5C6xY0yi855IeKhUu5JF-eqddJ7a7/exec',
+  // 📦 成果物用フォーム
   FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSfrrg3ZbvEhDcLwyamI3y6yHLwLgm0Ld47VX-QN2VF5N0G4sg/viewform',
   // 🏆 成果報告用フォーム（受賞・点数アップ等）
   FORM_URL_RESULT: 'https://docs.google.com/forms/d/e/1FAIpQLSdCtIzUTYHn5_WSyRvpQUX50yHUcdlOtQAvy6Yum16oA6Tg_A/viewform',
 
+  // ────────────────────────────────────────────
+  // レベル設定（件数ベース・あとで変更可能）
+  // ────────────────────────────────────────────
+  // しきい値: Lv1=0件 / Lv2=10件 / Lv3=20件 / Lv4=30件 / Lv5=40件
+  LEVEL_THRESHOLDS: [0, 10, 20, 30, 40],
+  // 成果報告1件 = 成果物何件分としてカウントするか
+  RESULT_COUNT_MULTIPLIER: 3,
+
   EVOLUTION: [
-    { lv: 1, name: 'タマゴ', xpStart: 0,    monsterKey: 'egg' },
-    { lv: 2, name: 'ヒナ',   xpStart: 200,  monsterKey: 'hatchling' },
-    { lv: 3, name: '子モンスター', xpStart: 600,  monsterKey: 'baby' },
-    { lv: 4, name: '最終形態',     xpStart: 1500, monsterKey: 'final' },
+    { lv: 1, name: 'タマゴ',         monsterKey: 'egg' },
+    { lv: 2, name: 'ヒナ',           monsterKey: 'hatchling' },
+    { lv: 3, name: '子モンスター',   monsterKey: 'baby' },
+    { lv: 4, name: '成長モンスター', monsterKey: 'grown' },
+    { lv: 5, name: '最終形態',       monsterKey: 'final' },
   ],
 
   SUBJECTS: [
@@ -24,17 +33,18 @@ window.MZ_CONFIG = {
     { key: 'creative', label: 'クリエイティブ', color: '#F06292' },
   ],
 
-  // カテゴリ別XP定義
-  XP_BY_STAR_OUTPUT: { 1: 15, 2: 25, 3: 40, 4: 60, 5: 80 },
-  XP_RESULT_FIXED: 120, // 成果報告は難易度なしで一律
-
   // 成果の種類
   RESULT_TYPES: [
     'コンテスト入賞', '受賞', '外部評価', '採用実績',
     '成績アップ', '点数アップ', 'その他',
   ],
 
-  // 子・最終形態のモンスター名（最強軸ごと）
+  // 画像プレースホルダーテキスト（差し替えるまで表示）
+  PLACEHOLDER_TEXT: '画像準備中',
+
+  // ────────────────────────────────────────────
+  // 以下は画像差し替え後に再利用予定（現在は未使用）
+  // ────────────────────────────────────────────
   MONSTER_BY_AXIS: {
     ai:       { baby: '子サイバービースト', final: 'サイバービースト' },
     eng:      { baby: '子フェニックス',     final: 'フェニックス' },
@@ -43,8 +53,6 @@ window.MZ_CONFIG = {
     creative: { baby: '子レインボードラゴン', final: 'レインボードラゴン' },
     balance:  { baby: '子ユニコーン',       final: 'ユニコーン神獣' },
   },
-
-  // 画像ファイル名（assets/images/monsters/ 配下）
   MONSTER_IMAGES: {
     egg:                 'monster-0-egg.png',
     hatchling:           'monster-1-hatchling.png',
@@ -61,7 +69,5 @@ window.MZ_CONFIG = {
     'creative-final':    'monster-12-rainbow.png',
     'balance-final':     'monster-13-unicorn.png',
   },
-
-  // バランス判定: 5軸の最大-最小がこの値以下ならユニコーン
   BALANCE_THRESHOLD: 10,
 };
