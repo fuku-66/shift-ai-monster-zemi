@@ -63,6 +63,7 @@ function doGet(e) {
     if (action === 'buildHub') return jsonOut_(buildHubSheet_());
     if (action === 'cleanup') return jsonOut_(cleanupSheets_());
     if (action === 'lockAutoSheets') return jsonOut_(lockAndHideAutoSheets_());
+    if (action === 'createPromptSheet') return jsonOut_(createPromptSheet_());
     return jsonOut_(buildSiteState_());
   } catch (err) {
     return jsonOut_({ error: String(err) });
@@ -1066,6 +1067,97 @@ function formatDate_(v) {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return y + '-' + m + '-' + dd;
+}
+
+/* ================================================================
+   モンスタープロンプトシート作成（手動実行 or ?action=createPromptSheet）
+   ================================================================ */
+function createPromptSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const SHEET_NAME = '🎨 モンスタープロンプト';
+  let sh = ss.getSheetByName(SHEET_NAME);
+  if (sh) sh.clear();
+  else sh = ss.insertSheet(SHEET_NAME);
+  sh.setTabColor('#9B59B6');
+
+  const headers = ['Lv', '名前（仮）', 'ビジュアルイメージ', '推奨サイズ', 'AIプロンプト（英語）', '画像ファイル名', 'メモ'];
+  const data = [
+    [
+      1, 'ちびもこ',
+      '丸くてほぼ球体。目だけある。耳も手足もない。何のモンスターかわからない中性的な幼体。',
+      '32×32px',
+      'pixel art, 32x32, tiny fluffy round creature, only two big shiny cute eyes visible, no ears, no limbs, perfectly round soft body, light pastel fur color, simple and clean, transparent background, game sprite style',
+      'monster-lv1.png',
+      'Lv1はどのモンスターかわからない中性デザインが重要'
+    ],
+    [
+      2, 'もふもこ',
+      '少し縦長になる。丸い耳が2本生えてくる。目がはっきりしてくる。まだかわいい系。',
+      '32×32px',
+      'pixel art, 32x32, small fluffy round creature, two round fluffy ears on top of head, big cute eyes, tiny dot nose, slightly oval body, soft pastel fur, no limbs yet, transparent background, cute game sprite style',
+      'monster-lv2.png',
+      '耳の形が最初のヒント。まだ正体不明感を残す'
+    ],
+    [
+      3, 'もふビースト（幼）',
+      '手足が出てくる。四本足。体がもふもふしている。しっぽがある。かわいいけど少し力強さが出てくる。',
+      '64×64px',
+      'pixel art, 64x64, chubby fluffy four-legged creature, round fluffy ears, big expressive eyes, short stubby limbs, fluffy tail, round body with soft fur texture, slightly more defined than before, still cute, transparent background, game sprite style',
+      'monster-lv3.png',
+      'Lv3から四足獣の形が見えてくる'
+    ],
+    [
+      4, 'もふビースト（成）',
+      '体が大きくなる。顔周りにたてがみが生えてくる。目が少し鋭くなる。かっこよくなってくる。',
+      '64×64px',
+      'pixel art, 64x64, fluffy beast with impressive mane around face, larger and stronger body, sharper determined eyes, four strong limbs, fluffy tail, still has soft fur but more powerful silhouette, cool but not scary, transparent background, game sprite style',
+      'monster-lv4.png',
+      'たてがみで一気にかっこよくなるポイント'
+    ],
+    [
+      5, 'グランもふ（最終形態）',
+      '最大サイズ。たてがみが豪華になる。目が輝いている。オーラまたは光のエフェクトあり。圧倒的なかっこよさ。',
+      '128×128px',
+      'pixel art, 64x64, majestic fluffy beast, large magnificent mane, glowing fierce eyes, powerful muscular body covered in thick fur, glowing aura or energy effect around body, impressive and cool final evolution, standing proud pose, transparent background, game sprite style',
+      'monster-lv5.png',
+      '最終形態は128px推奨。オーラエフェクトで差別化'
+    ],
+  ];
+
+  sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sh.getRange(1, 1, 1, headers.length)
+    .setFontWeight('bold')
+    .setBackground('#9B59B6')
+    .setFontColor('#fff');
+
+  data.forEach((row, i) => {
+    sh.getRange(i + 2, 1, 1, row.length).setValues([row]);
+  });
+
+  // 列幅を調整
+  sh.setColumnWidth(1, 40);
+  sh.setColumnWidth(2, 120);
+  sh.setColumnWidth(3, 300);
+  sh.setColumnWidth(4, 90);
+  sh.setColumnWidth(5, 500);
+  sh.setColumnWidth(6, 140);
+  sh.setColumnWidth(7, 200);
+  sh.setFrozenRows(1);
+  sh.getRange(2, 3, 5, 1).setWrap(true);
+  sh.getRange(2, 5, 5, 1).setWrap(true);
+  sh.getRange(2, 7, 5, 1).setWrap(true);
+
+  // Lv列に色付け
+  const lvColors = ['#5D6D7E', '#27AE60', '#2980B9', '#8E44AD', '#E67E22'];
+  data.forEach((_, i) => {
+    sh.getRange(i + 2, 1).setBackground(lvColors[i]).setFontColor('#fff').setFontWeight('bold');
+  });
+
+  // 一番左から2番目に移動
+  ss.setActiveSheet(sh);
+  ss.moveActiveSheet(2);
+
+  return { ok: true, sheetName: SHEET_NAME, rows: data.length };
 }
 
 /* ================================================================

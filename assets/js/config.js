@@ -3,7 +3,7 @@
  * デプロイ前にGAS_URLを書き換える
  */
 window.MZ_CONFIG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbx8Lguu3CT9FfoLpX_0b5SgNGzQTw98G0xlRUVYzmNnZ9MwPwwx_aEmofPDTHfelvg2/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbyyN0G_UbYpVJiOUQ-BYqomayuLjHsifwX1z5IpSV_po2IksmwgFCpGlpDRB2XEj1Bh/exec',
   // 📦 成果物用フォーム
   FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSfrrg3ZbvEhDcLwyamI3y6yHLwLgm0Ld47VX-QN2VF5N0G4sg/viewform',
   // 🏆 成果報告用フォーム（受賞・点数アップ等）
