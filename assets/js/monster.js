@@ -1,67 +1,39 @@
 /**
- * モンスター決定ロジック
- * 入力: 5軸XP値
- * 出力: { lv, monsterName, imagePath, dominantAxis, isBalance }
+ * モンスター決定ロジック（件数ベース）
+ * 入力: 教科別カウント or 合計カウント
+ * 出力: { lv, total, monsterName, imagePath, placeholder, dominantAxis, isBalance }
  */
 (function (global) {
   const cfg = global.MZ_CONFIG;
 
-  function calcLv(totalXp) {
-    let cur = cfg.EVOLUTION[0];
-    for (const e of cfg.EVOLUTION) if (totalXp >= e.xpStart) cur = e;
-    return cur;
+  function calcLv(count) {
+    const thresholds = cfg.LEVEL_THRESHOLDS || [0, 10, 20, 30, 40];
+    let lv = 1;
+    for (let i = 0; i < thresholds.length; i++) {
+      if (count >= thresholds[i]) lv = i + 1;
+    }
+    return cfg.EVOLUTION.find(e => e.lv === lv) || cfg.EVOLUTION[0];
   }
 
-  function determineMonster(stats) {
-    const total = cfg.SUBJECTS.reduce((sum, s) => sum + (stats[s.key] || 0), 0);
-    const lvInfo = calcLv(total);
-    const lv = lvInfo.lv;
+  const LV_EMOJI = { 1: '🥚', 2: '🐣', 3: '❓', 4: '❓', 5: '❓' };
 
-    // Lv1, Lv2 は共通
-    if (lv === 1) {
-      return {
-        lv, total,
-        monsterName: 'タマゴ',
-        imagePath: 'assets/images/monsters/' + cfg.MONSTER_IMAGES.egg,
-        dominantAxis: null,
-        isBalance: false,
-      };
-    }
-    if (lv === 2) {
-      return {
-        lv, total,
-        monsterName: 'ヒナ',
-        imagePath: 'assets/images/monsters/' + cfg.MONSTER_IMAGES.hatchling,
-        dominantAxis: null,
-        isBalance: false,
-      };
-    }
-
-    // Lv3 / Lv4: 軸を決定
-    const values = cfg.SUBJECTS.map(s => stats[s.key] || 0);
-    const max = Math.max(...values);
-    const min = Math.min(...values);
-    const isBalance = (max - min) <= cfg.BALANCE_THRESHOLD && max > 0;
-
-    let axis;
-    if (isBalance) {
-      axis = 'balance';
+  function determineMonster(stats, totalCount) {
+    let count;
+    if (typeof totalCount === 'number') {
+      count = totalCount;
     } else {
-      const idx = values.indexOf(max);
-      axis = cfg.SUBJECTS[idx].key;
+      count = cfg.SUBJECTS.reduce((sum, s) => sum + (stats[s.key] || 0), 0);
     }
-
-    const stage = lv === 3 ? 'baby' : 'final';
-    const monsterName = cfg.MONSTER_BY_AXIS[axis][stage];
-    const imageKey = `${axis}-${stage}`;
-    const imagePath = 'assets/images/monsters/' + cfg.MONSTER_IMAGES[imageKey];
+    const lvInfo = calcLv(count);
 
     return {
-      lv, total,
-      monsterName,
-      imagePath,
-      dominantAxis: axis,
-      isBalance,
+      lv: lvInfo.lv,
+      total: count,
+      monsterName: lvInfo.name,
+      imagePath: '',
+      placeholder: LV_EMOJI[lvInfo.lv] || '🥚',
+      dominantAxis: null,
+      isBalance: false,
     };
   }
 
