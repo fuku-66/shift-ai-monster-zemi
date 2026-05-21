@@ -6,7 +6,6 @@
 <title>モンスター育成プロジェクト | SHIFT AI ジュニア</title>
 <link rel="stylesheet" href="assets/css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -37,7 +36,7 @@
         <span class="status-lv-badge" id="status-lv">Lv.1</span>
         <span class="status-name" id="status-name">…</span>
       </div>
-      <div class="status-xp" id="status-xp">0 XP</div>
+      <div class="status-xp" id="status-xp">0 件</div>
     </div>
     <div class="xp-bar">
       <div class="xp-bar-fill" id="xp-bar-fill"></div>
@@ -60,17 +59,6 @@
       <li style="border-left-color:#BA68C8"><span>📚 勉強法</span><span id="axis-study">0</span></li>
       <li style="border-left-color:#F06292"><span>🎨 クリエイティブ</span><span id="axis-creative">0</span></li>
     </ul>
-  </section>
-
-  <!-- レーダーチャート（デフォルト表示・トグル可） -->
-  <section class="radar-section">
-    <button class="radar-toggle open" id="radar-toggle" onclick="toggleRadar()">
-      <span>📡 レーダーチャートを閉じる</span>
-      <span id="radar-toggle-icon">▲</span>
-    </button>
-    <div class="radar-wrap" id="radar-wrap" style="display:block;">
-      <canvas id="radar-chart"></canvas>
-    </div>
   </section>
 
   <!-- CTA -->

@@ -193,57 +193,97 @@
 
 <div class="hero">
   <h1>🐉 モンスター育成プロジェクト</h1>
-  <p>SHIFT AI ジュニア — モンスター進化・XP設計 仕様書</p>
+  <p>SHIFT AI ジュニア — モンスター進化・カウント設計 仕様書</p>
   <div class="url">https://fuku-66.github.io/shift-ai-monster-zemi/</div>
 </div>
 
 <div class="container">
 
-  <!-- ① 進化ステージ概要 -->
+  <!-- ① 進化ステージ概要（5段階・カウントベース） -->
   <div class="section">
-    <div class="section-title">① 進化ステージ（4段階）</div>
+    <div class="section-title">① 進化ステージ（5段階・カウントベース）</div>
     <div class="evo-flow">
-      <!-- Lv1 -->
       <div class="evo-card">
         <div class="lv">Lv.1</div>
-        <div class="img-wrap"><img src="assets/images/monsters/monster-0-egg.png" alt="タマゴ"></div>
-        <div class="name">🥚 タマゴ</div>
-        <div class="xp">0 〜 199 XP</div>
+        <div class="img-wrap" style="font-size:36px;">🥚</div>
+        <div class="name">タマゴ</div>
+        <div class="xp">0 〜 9 件</div>
       </div>
       <div class="evo-arrow">▶</div>
-      <!-- Lv2 -->
       <div class="evo-card">
         <div class="lv">Lv.2</div>
-        <div class="img-wrap"><img src="assets/images/monsters/monster-1-hatchling.png" alt="ヒナ"></div>
-        <div class="name">🐣 ヒナ</div>
-        <div class="xp">200 〜 599 XP</div>
+        <div class="img-wrap" style="font-size:36px;">🐣</div>
+        <div class="name">ヒナ</div>
+        <div class="xp">10 〜 19 件</div>
       </div>
       <div class="evo-arrow">▶</div>
-      <!-- Lv3 -->
       <div class="evo-card">
         <div class="lv">Lv.3</div>
         <div class="img-wrap" style="font-size:36px;">❓</div>
         <div class="name">子モンスター</div>
-        <div class="xp">600 〜 1499 XP</div>
+        <div class="xp">20 〜 29 件</div>
       </div>
       <div class="evo-arrow">▶</div>
-      <!-- Lv4 -->
       <div class="evo-card">
         <div class="lv">Lv.4</div>
+        <div class="img-wrap" style="font-size:36px;">❓</div>
+        <div class="name">成長モンスター</div>
+        <div class="xp">30 〜 39 件</div>
+      </div>
+      <div class="evo-arrow">▶</div>
+      <div class="evo-card">
+        <div class="lv">Lv.5</div>
         <div class="img-wrap" style="font-size:36px;">⭐</div>
         <div class="name">最終形態</div>
-        <div class="xp">1500 XP〜</div>
+        <div class="xp">40 件〜</div>
       </div>
     </div>
     <div class="flow-note">
-      Lv.1・Lv.2 は<b>全員共通</b>の姿。Lv.3 以降は、累計XPの教科バランスによって<b>6種類のどれかに分岐</b>します。
-      5教科のXPが均等（差10以下）だと<b>レア進化（ユニコーン系）</b>が発生します。
+      <b>カウント計算</b>: 📦 成果物 = +1件 / 🏆 成果報告 = +3件（成果物3件分のボーナス）<br>
+      しきい値は <code>assets/js/config.js</code> の <code>LEVEL_THRESHOLDS</code> で変更可能。<br>
+      モンスターの姿は順次差し替え予定（現在は「画像準備中」プレースホルダー表示）。
     </div>
   </div>
 
-  <!-- ② Lv3 子モンスター一覧 -->
+  <!-- ② カウントルール -->
   <div class="section">
-    <div class="section-title">② Lv.3 子モンスター（600 XP〜）</div>
+    <div class="section-title">② カウントルール</div>
+    <div class="xp-grid">
+
+      <div class="card-block">
+        <h3>📦 成果物（Output）</h3>
+        <div style="font-size:32px;color:var(--gold);margin:12px 0;">+1 件</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">難易度（★）に関係なく、提出1件あたり1カウント。</div>
+        <div style="font-size:12px;color:var(--muted);">提出時に <b>即カウント＋Discord通知</b>。<br>
+        選んだ教科のカウントに +1 加算される。</div>
+      </div>
+
+      <div class="card-block">
+        <h3>🏆 成果報告（Result）</h3>
+        <div style="font-size:32px;color:var(--gold);margin:12px 0;">+3 件</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">コンテスト入賞・受賞などの実績は、成果物3件分としてカウント。</div>
+        <div style="font-size:12px;color:var(--muted);">提出後、<b>講師がスプシで「承認」☑を入れたタイミング</b>でカウント＋Discord通知。<br>
+        個人情報を含むため、公開前に内容チェックが入る。</div>
+      </div>
+
+    </div>
+    <div class="flow-note">
+      倍率は <code>RESULT_COUNT_MULTIPLIER</code>（config.js / Webapp.js）で変更可能。
+    </div>
+  </div>
+
+  <!-- ③ 旧仕様アーカイブ（教科別モンスター分岐・将来検討） -->
+  <div class="section">
+    <div class="section-title">③ 旧仕様アーカイブ（教科分岐モンスター・将来検討）</div>
+    <div class="flow-note" style="margin-bottom:16px;">
+      ⚠️ 以下は旧仕様（XPベース・教科分岐6種類モンスター案）。<br>
+      現行の5段階カウント仕様に伴い分岐ロジックは無効化。画像差し替え時に再構成予定（モンスター案は <code>config.js</code> の <code>MONSTER_BY_AXIS</code> に保持）。
+    </div>
+  </div>
+
+  <!-- 旧仕様 Lv3 子モンスター一覧 -->
+  <div class="section">
+    <div class="section-title">③-A 子モンスター案（旧Lv.3・教科分岐）</div>
     <div class="monster-grid">
 
       <div class="monster-card lv3">
@@ -298,9 +338,9 @@
     </div>
   </div>
 
-  <!-- ③ Lv4 最終形態一覧 -->
+  <!-- 旧仕様 Lv4 最終形態 -->
   <div class="section">
-    <div class="section-title">③ Lv.4 最終形態（1500 XP〜）</div>
+    <div class="section-title">③-B 最終形態案（旧Lv.4・教科分岐）</div>
     <div class="monster-grid">
 
       <div class="monster-card lv4">
@@ -355,49 +395,9 @@
     </div>
   </div>
 
-  <!-- ④ XP加算ルール -->
+  <!-- 旧仕様 教科軸と進化の関係 -->
   <div class="section">
-    <div class="section-title">④ XP加算ルール</div>
-    <div class="xp-grid">
-
-      <div class="card-block">
-        <h3>📦 成果物（難易度で変動）</h3>
-        <table class="xp-table">
-          <thead>
-            <tr><th>難易度</th><th>XP</th><th>加算先</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>★1 やさしい</td><td>+15 XP</td><td rowspan="5" style="vertical-align:middle;color:var(--muted);font-size:11px;">選んだ<br>教科の軸のみ</td></tr>
-            <tr><td>★2</td><td>+25 XP</td></tr>
-            <tr><td>★3 ふつう</td><td>+40 XP</td></tr>
-            <tr><td>★4</td><td>+60 XP</td></tr>
-            <tr><td>★5 チャレンジ</td><td>+80 XP</td></tr>
-          </tbody>
-        </table>
-        <div style="margin-top:10px;font-size:12px;color:var(--muted);">例: 英語の★3 → 英語軸に +40 XP</div>
-      </div>
-
-      <div class="card-block">
-        <h3>🏆 成果（コンテスト入賞・受賞など）</h3>
-        <div style="font-size:32px;color:var(--gold);margin:12px 0;">+120 XP</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">難易度・教科問わず一律。5教科に均等加算（各 +24 XP）</div>
-        <table class="xp-table">
-          <thead>
-            <tr><th>教科</th><th>加算</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>AI基礎 / 英語 / 数学<br>勉強法 / クリエイティブ</td><td>各 +24 XP</td></tr>
-          </tbody>
-        </table>
-        <div style="margin-top:10px;font-size:12px;color:var(--muted);">全軸が均等に伸びるのでバランス進化（レア）も狙いやすい</div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ⑤ 教科軸と進化の関係 -->
-  <div class="section">
-    <div class="section-title">⑤ 教科軸と進化モンスターの対応</div>
+    <div class="section-title">③-C 教科軸と進化モンスターの対応（旧仕様）</div>
     <div class="card-block">
       <ul class="axis-list">
         <li>
@@ -444,6 +444,7 @@
         </li>
       </ul>
       <div class="flow-note" style="margin-top:16px;">
+        <b>※ 旧仕様（現在は無効）</b><br>
         <b>バランス判定</b>: 5教科のXP最大値 − 最小値 ≤ 10 のとき、レア進化（ユニコーン系）に分岐。<br>
         それ以外は<b>最も高いXPの教科軸</b>のモンスターに進化。
       </div>
