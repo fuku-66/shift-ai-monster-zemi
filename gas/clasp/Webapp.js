@@ -1,7 +1,7 @@
 /**
  * 🥚 SHIFT AI ジュニア モンスター育成プロジェクト
  * ============================================================
- * WebApp 本体（5軸XP集計 + 即時XP加算 + 2カテゴリ対応）
+ * WebApp 本体（件数ベース集計 + 2カテゴリ対応）
  * ============================================================
  *
  * セットアップ:
@@ -16,15 +16,21 @@
  *   🏆 成果   (result): フリー報告枠 / mission ID = r-{教科}{難易度} / XP×3倍
  */
 
-const XP_BY_STAR_OUTPUT = { 1: 15, 2: 25, 3: 40, 4: 60, 5: 80 };
-const XP_RESULT_FIXED = 120; // 成果報告は難易度なしで一律
+// ────────────────────────────────────────────
+// 件数ベース判定（あとで変更可能）
+// ────────────────────────────────────────────
+// しきい値: Lv1=0件 / Lv2=10件 / Lv3=20件 / Lv4=30件 / Lv5=40件
+const LEVEL_THRESHOLDS = [0, 10, 20, 30, 40];
+// 成果報告1件 = 成果物何件分としてカウントするか
+const RESULT_COUNT_MULTIPLIER = 3;
 const SHEET_LOG = '提出ログ';
 
 const EVOLUTION = [
-  { lv: 1, name: 'タマゴ',         xpStart: 0,    monsterKey: 'egg' },
-  { lv: 2, name: 'ヒナ',           xpStart: 200,  monsterKey: 'hatchling' },
-  { lv: 3, name: '子モンスター',    xpStart: 600,  monsterKey: 'baby' },
-  { lv: 4, name: '最終形態',        xpStart: 1500, monsterKey: 'final' },
+  { lv: 1, name: 'タマゴ',         monsterKey: 'egg' },
+  { lv: 2, name: 'ヒナ',           monsterKey: 'hatchling' },
+  { lv: 3, name: '子モンスター',   monsterKey: 'baby' },
+  { lv: 4, name: '成長モンスター', monsterKey: 'grown' },
+  { lv: 5, name: '最終形態',       monsterKey: 'final' },
 ];
 
 const SUBJECT_MAP = { 'a': 'AI基礎', 'e': '英語', 'm': '数学', 's': '勉強法', 'c': 'クリエイティブ' };
@@ -83,7 +89,7 @@ function ensureResultForm_(forceRebuild) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const form = FormApp.create('🏆 SHIFT AI ジュニア 成果報告フォーム');
   form.setDescription(
-    '🏆 成果報告（一律 +120 XP）\n\n' +
+    '🏆 成果報告（成果物3件分 +3pt）\n\n' +
     'コンテスト入賞・受賞・成績アップ・点数アップ・採用などの実績を報告するフォームです。\n' +
     '通常の成果物（AIで作成したもの）の提出は、別フォームから行ってください。'
   );
@@ -653,7 +659,11 @@ function findCol_(header, name) {
 function buildSiteState_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = findLogSheet_(ss);
-  const empty = { stats: zeroStats_(), totalXp: 0, totalSubmissions: 0, totalMembers: 0, lv: 1, monster: 'egg', recent: [], all: [] };
+  const empty = {
+    stats: zeroStats_(), totalCount: 0, totalSubmissions: 0, totalMembers: 0,
+    lv: 1, lvName: 'タマゴ', monster: 'egg', monsterName: 'タマゴ',
+    recent: [], all: [],
+  };
   if (!sh) return empty;
 
   const lastRow = sh.getLastRow();
@@ -663,18 +673,17 @@ function buildSiteState_() {
   const rows   = sh.getRange(2, 1, lastRow - 1, sh.getLastColumn()).getValues();
   const col = (name) => findCol_(header, name);
 
-  const iTimestamp = col('タイムスタンプ');
-  const iNickname  = col('ニックネーム');
-  const iCategory  = col('カテゴリ');
-  const iMission   = col('挑戦した課題');
-  const iSubject   = col('教科');
-  const iDifficulty = col('難易度');
+  const iTimestamp  = col('タイムスタンプ');
+  const iNickname   = col('ニックネーム');
+  const iCategory   = col('カテゴリ');
+  const iMission    = col('挑戦した課題');
+  const iSubject    = col('教科');
   const iResultType = col('成果の種類');
-  const iContent   = col('提出内容');
-  const iUrl       = col('参考URL');
-  const iComment   = col('ひとこと');
-  const iEmail     = col('メールアドレス');
-  const iApproved  = col('承認');
+  const iContent    = col('提出内容');
+  const iUrl        = col('参考URL');
+  const iComment    = col('ひとこと');
+  const iEmail      = col('メールアドレス');
+  const iApproved   = col('承認');
   let iConsent = findCol_(header, '同意');
   if (iConsent < 0) iConsent = findCol_(header, '外部公開');
 
@@ -684,24 +693,30 @@ function buildSiteState_() {
     const categoryRaw = iCategory >= 0 ? String(r[iCategory] || '') : '';
     const resultTypeRaw = iResultType >= 0 ? String(r[iResultType] || '') : '';
     const subjectField = iSubject >= 0 ? String(r[iSubject] || '') : '';
-    const difficultyField = iDifficulty >= 0 ? String(r[iDifficulty] || '') : '';
     const isResult = isResultSubmission_(categoryRaw, resultTypeRaw);
     const category = isResult ? 'result' : 'output';
 
-    let missionId, subject, difficulty;
+    let missionId, subject;
     if (isResult) {
-      // 成果: 教科関係なく全教科に均等加算（subject='全教科'）
       missionId = 'r-all';
       subject = '全教科';
-      difficulty = 0;
     } else {
       missionId = extractMissionId_(mField);
-      // 「教科」「難易度」列を優先、無ければmission IDから推測
       subject = subjectField || subjectFromId_(missionId);
-      const starMatch = difficultyField.match(/(\d+)/);
-      difficulty = starMatch ? parseInt(starMatch[1], 10) : difficultyFromId_(missionId);
     }
-    const xp = isResult ? XP_RESULT_FIXED : (XP_BY_STAR_OUTPUT[difficulty] || 0);
+
+    // 件数: 成果物=1件、成果報告=RESULT_COUNT_MULTIPLIER件分
+    const count = isResult ? RESULT_COUNT_MULTIPLIER : 1;
+
+    // 承認判定（カテゴリで反転）
+    //   成果物: 空 or TRUE = 承認、FALSE のみ取消（即時XP）
+    //   成果報告: 明示的にTRUEのみ承認（個人情報チェック後）
+    let approved;
+    if (isResult) {
+      approved = iApproved >= 0 ? isApprovedExplicit_(r[iApproved]) : false;
+    } else {
+      approved = iApproved >= 0 ? isApproved_(r[iApproved]) : true;
+    }
 
     return {
       id:           'r-' + rowIndex,
@@ -712,48 +727,42 @@ function buildSiteState_() {
       subject:      subject,
       missionId:    missionId,
       missionTitle: extractMissionTitle_(mField) || mField,
-      difficulty:   difficulty,
-      xp:           xp,
+      count:        count,
       resultType:   iResultType >= 0 ? r[iResultType] || '' : '',
       content:      r[iContent] || '',
       url:          iUrl >= 0 ? r[iUrl] || '' : '',
       comment:      iComment >= 0 ? r[iComment] || '' : '',
-      approved:     iApproved >= 0 ? isApproved_(r[iApproved]) : true,  // 空 or TRUE = 即時承認、FALSE のみ取り消し
+      approved:     approved,
       consented:    iConsent >= 0 ? String(r[iConsent] || '').indexOf('同意します') >= 0 : true,
     };
   });
 
   const approved = items.filter(x => x.approved);
+
+  // 教科別カウント（成果物のみ加算・成果報告は教科関係なし）
   const stats = zeroStats_();
-  const axisKeys = ['ai', 'eng', 'math', 'study', 'creative'];
+  let totalCount = 0;
   approved.forEach(x => {
-    if (x.category === 'result') {
-      // 成果は5軸均等加算（XP / 5 ずつ）
-      const perAxis = x.xp / axisKeys.length;
-      axisKeys.forEach(k => { stats[k] += perAxis; });
-    } else {
+    totalCount += x.count;
+    if (x.category === 'output') {
       const k = AXIS_KEY[x.subject];
-      if (k) stats[k] += x.xp;
+      if (k) stats[k] += 1;
     }
   });
 
-  const totalXp = stats.ai + stats.eng + stats.math + stats.study + stats.creative;
-  const lvInfo  = calcLv_(totalXp);
-  const dom     = determineMonster_(stats, lvInfo.lv);
+  const lvInfo = calcLvByCount_(totalCount);
 
-  // GitHub Pagesアーカイブは内部運用ツールなので全員表示
-  // 同意フラグはSHIFT AIブログ/セミナーでの外部紹介の可否のみ管理（人手運用）
   return {
     stats: stats,
-    totalXp: totalXp,
+    totalCount: totalCount,
     totalSubmissions: approved.length,
     totalMembers: new Set(approved.map(x => x.email || x.name)).size,
     lv: lvInfo.lv,
     lvName: lvInfo.name,
-    monster: dom.monsterKey,
-    monsterName: dom.monsterName,
-    dominantAxis: dom.axis,
-    isBalance: dom.isBalance,
+    monster: lvInfo.monsterKey,
+    monsterName: lvInfo.name,
+    dominantAxis: null,
+    isBalance: false,
     recent: approved.slice().sort((a, b) => (b.date > a.date ? 1 : -1)).slice(0, 5),
     all:    approved.slice().sort((a, b) => (b.date > a.date ? 1 : -1)),
   };
@@ -763,37 +772,13 @@ function zeroStats_() {
   return { ai: 0, eng: 0, math: 0, study: 0, creative: 0 };
 }
 
-function determineMonster_(stats, lv) {
-  if (lv === 1) return { axis: null, monsterKey: 'egg',       monsterName: 'タマゴ', isBalance: false };
-  if (lv === 2) return { axis: null, monsterKey: 'hatchling', monsterName: 'ヒナ',   isBalance: false };
-
-  const keys = ['ai', 'eng', 'math', 'study', 'creative'];
-  const values = keys.map(k => stats[k]);
-  const max = Math.max.apply(null, values);
-  const min = Math.min.apply(null, values);
-  const isBalance = (max - min) <= BALANCE_THRESHOLD && max > 0;
-
-  let axis;
-  if (isBalance) {
-    axis = 'balance';
-  } else {
-    const idx = values.indexOf(max);
-    axis = keys[idx];
+function calcLvByCount_(count) {
+  let lv = 1;
+  for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) {
+    if (count >= LEVEL_THRESHOLDS[i]) lv = i + 1;
   }
-
-  const stage = lv === 3 ? 'baby' : 'final';
-  return {
-    axis: axis,
-    monsterKey: axis + '-' + stage,
-    monsterName: MONSTER_BY_AXIS[axis][stage],
-    isBalance: isBalance,
-  };
-}
-
-function calcLv_(xp) {
-  let cur = EVOLUTION[0];
-  for (const e of EVOLUTION) if (xp >= e.xpStart) cur = e;
-  return cur;
+  const e = EVOLUTION.find(x => x.lv === lv) || EVOLUTION[0];
+  return e;
 }
 
 /* ================================================================
@@ -821,22 +806,22 @@ function onFormSubmit(e) {
     const consented    = !consentRaw || consentRaw.indexOf('同意します') >= 0;
     const isResult     = isResultSubmission_(categoryRaw, resultType);
 
-    // 教科・難易度・XPを確定
-    let subject, difficulty, missionId, missionTitle;
+    // 教科・課題情報を確定
+    let subject, missionId, missionTitle;
     if (isResult) {
       subject = '全教科';
-      difficulty = 0;
       missionId = 'r-all';
       missionTitle = missionField;
     } else {
       missionId = extractMissionId_(missionField);
       subject = subjectFromId_(missionId);
-      difficulty = difficultyFromId_(missionId);
       missionTitle = extractMissionTitle_(missionField) || missionField;
     }
-    const xpGained = isResult ? XP_RESULT_FIXED : (XP_BY_STAR_OUTPUT[difficulty] || 0);
+    const countGained = isResult ? RESULT_COUNT_MULTIPLIER : 1;
 
     // 「提出ログ」シートに統合書き込み（成果物・成果報告の両フォームで一元管理）
+    //   成果物 → 承認TRUE・通知済TRUE（即時カウント・即時Discord通知）
+    //   成果報告 → 承認FALSE・通知済FALSE（個人情報チェック待ち・承認☑で初通知）
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const log = ss.getSheetByName(SHEET_LOG);
     if (log) {
@@ -847,45 +832,44 @@ function onFormSubmit(e) {
         category: isResult ? '🏆 成果' : '📦 成果物',
         mission: missionTitle,
         subject: isResult ? '全教科' : subject,
-        difficulty: isResult ? '' : ('★' + difficulty),
+        difficulty: '',
         resultType: resultType,
         content: content,
         url: pickFirst('参考URL'),
         comment: pickFirst('ひとこと'),
         consent: consentRaw,
-        approved: true,
-        notified: true,
+        approved: !isResult,   // 成果物のみ即承認
+        notified: !isResult,   // 成果物のみ即通知済
       });
     }
 
-    const stars = '★'.repeat(difficulty) + '☆'.repeat(5 - difficulty);
+    // 成果報告は承認待ちなので、ここではDiscord通知しない
+    if (isResult) return;
+
+    // 成果物のみ即時Discord通知
     const excerpt = content.length > 120 ? content.substring(0, 120) + '…' : content;
     const state = buildSiteState_();
-
-    // Discord通知は同意の有無に関わらず実行（内部チャットでの成果共有）
-    const payload = isResult
-      ? buildResultPayload_(nickname, missionTitle, subject, stars, xpGained, resultType, excerpt, state)
-      : buildOutputPayload_(nickname, missionTitle, subject, stars, xpGained, excerpt, state);
+    const payload = buildOutputPayload_(nickname, missionTitle, subject, countGained, excerpt, state);
     sendDiscord_(payload);
   } catch (err) {
     Logger.log('onFormSubmit error: ' + err);
   }
 }
 
-function buildOutputPayload_(nickname, title, subject, stars, xp, excerpt, state) {
+function buildOutputPayload_(nickname, title, subject, count, excerpt, state) {
   return {
     username: '🥚 モンスターの書',
     embeds: [{
-      title: '📦 成果物の報告 +' + xp + ' XP',
+      title: '📦 成果物の報告 +' + count + ' 件',
       description:
         '**' + nickname + '** さんが成果物を提出！🎨\n\n' +
         '📝 ' + title + '\n' +
-        '📚 ' + subject + '　' + stars,
+        '📚 ' + subject,
       color: 0x3498DB,
       fields: [
         { name: '📝 内容（抜粋）', value: excerpt || '(内容なし)', inline: false },
         { name: '現在のモンスター', value: 'Lv.' + state.lv + ' ' + (state.monsterName || 'タマゴ'), inline: true },
-        { name: '累積XP',           value: String(state.totalXp) + ' XP',                           inline: true },
+        { name: '累計カウント',     value: String(state.totalCount) + ' 件',                          inline: true },
       ],
       footer: { text: 'SHIFT AIジュニア モンスター育成プロジェクト' },
       timestamp: new Date().toISOString(),
@@ -893,21 +877,21 @@ function buildOutputPayload_(nickname, title, subject, stars, xp, excerpt, state
   };
 }
 
-function buildResultPayload_(nickname, title, subject, stars, xp, resultType, excerpt, state) {
+function buildResultPayload_(nickname, title, subject, count, resultType, excerpt, state) {
   return {
     username: '🥚 モンスターの書',
     embeds: [{
-      title: '🏆 成果報告！ +' + xp + ' XP（成果ボーナス）',
+      title: '🏆 成果報告！ +' + count + ' 件（成果ボーナス）',
       description:
         '🎉 **' + nickname + '** さんが成果を達成しました！\n\n' +
         '🏆 **' + title + '**\n' +
         (resultType ? '🏅 ' + resultType + '\n' : '') +
-        '📚 5教科ぜんぶに均等加算',
+        '📚 成果物' + count + '件分のボーナス加算',
       color: 0xF1C40F,
       fields: [
         { name: '📝 成果の内容（抜粋）', value: excerpt || '(内容なし)', inline: false },
         { name: '現在のモンスター', value: 'Lv.' + state.lv + ' ' + (state.monsterName || 'タマゴ'), inline: true },
-        { name: '累積XP',           value: String(state.totalXp) + ' XP',                           inline: true },
+        { name: '累計カウント',     value: String(state.totalCount) + ' 件',                          inline: true },
       ],
       footer: { text: '🌟 おめでとう！ SHIFT AIジュニア モンスター育成プロジェクト' },
       timestamp: new Date().toISOString(),
@@ -916,7 +900,10 @@ function buildResultPayload_(nickname, title, subject, stars, xp, resultType, ex
 }
 
 /* ================================================================
-   承認☑を外したらXP取消（不適切提出のmariko対応用）
+   「承認」列の編集をトリガーに動く
+   - 成果物: ☑→FALSE で取消通知（既に提出時に承認TRUEで送信済み）
+   - 成果報告: ☑→TRUE で初回承認通知（個人情報チェック後の公開）
+              ☑→FALSE で取消通知（既に承認済みだった場合のみ）
    ================================================================ */
 function onApprovalEdit(e) {
   try {
@@ -934,42 +921,65 @@ function onApprovalEdit(e) {
     if (e.range.getColumn() !== iApproved) return;
 
     const val = isTruthy_(e.value);
-    if (val) return; // ☑にした場合は何もしない（提出時に既に通知済み）
-
-    // ☑を外した = 不適切提出として取消
     const vals = sh.getRange(row, 1, 1, header.length).getValues()[0];
     const pick = (name) => vals[findCol_(header, name)];
+
     const nickname = pick('ニックネーム') || 'ゲスト';
-    const missionField = pick('挑戦した課題') || '';
+    const missionField = String(pick('挑戦した課題') || '');
     const categoryRaw = String(pick('カテゴリ') || '');
     const resultTypeRaw = String(pick('成果の種類') || '');
     const isResult = isResultSubmission_(categoryRaw, resultTypeRaw);
+    const content = String(pick('提出内容') || '');
+    const excerpt = content.length > 120 ? content.substring(0, 120) + '…' : content;
 
-    let subject, difficulty;
+    // 通知済フラグ
+    const iNotified = findCol_(header, '通知済');
+    const notified = iNotified >= 0 ? isTruthy_(vals[iNotified]) : false;
+
+    // 教科・件数を確定
+    let subject, missionTitle;
     if (isResult) {
-      subject = String(pick('教科') || 'AI基礎');
-      const diffStr = String(pick('難易度') || '★1');
-      difficulty = parseInt((diffStr.match(/[1-5]/) || ['1'])[0], 10);
+      subject = '全教科';
+      missionTitle = extractMissionTitle_(missionField) || missionField;
     } else {
       const missionId = extractMissionId_(missionField);
-      subject = subjectFromId_(missionId);
-      difficulty = difficultyFromId_(missionId);
+      subject = String(pick('教科') || subjectFromId_(missionId));
+      missionTitle = extractMissionTitle_(missionField) || missionField;
     }
-    const xp = isResult ? XP_RESULT_FIXED : (XP_BY_STAR_OUTPUT[difficulty] || 0);
+    const count = isResult ? RESULT_COUNT_MULTIPLIER : 1;
 
-    const payload = {
-      username: '🥚 モンスターの書',
-      embeds: [{
-        title: '⚠️ 提出が取り消されました（-' + xp + ' XP）',
-        description:
-          '**' + nickname + '** さんの提出が講師判断で取消されました。\n' +
-          '不適切な内容や重複提出が原因の可能性があります。',
-        color: 0xE74C3C,
-        footer: { text: 'SHIFT AIジュニア' },
-        timestamp: new Date().toISOString(),
-      }],
-    };
-    sendDiscord_(payload);
+    // ── ケース1: 成果報告で承認☑ → 初回通知
+    if (isResult && val && !notified) {
+      const state = buildSiteState_();
+      const payload = buildResultPayload_(nickname, missionTitle, subject, count, resultTypeRaw, excerpt, state);
+      sendDiscord_(payload);
+      if (iNotified >= 0) {
+        sh.getRange(row, iNotified + 1).setValue(true);
+      }
+      return;
+    }
+
+    // ── ケース2: 承認☑を外した（成果物 or 通知済み成果報告）→ 取消通知
+    if (!val && notified) {
+      const payload = {
+        username: '🥚 モンスターの書',
+        embeds: [{
+          title: '⚠️ 提出が取り消されました（-' + count + ' 件）',
+          description:
+            '**' + nickname + '** さんの提出が講師判断で取消されました。\n' +
+            '不適切な内容や重複提出が原因の可能性があります。',
+          color: 0xE74C3C,
+          footer: { text: 'SHIFT AIジュニア' },
+          timestamp: new Date().toISOString(),
+        }],
+      };
+      sendDiscord_(payload);
+      if (iNotified >= 0) {
+        sh.getRange(row, iNotified + 1).setValue(false);
+      }
+      return;
+    }
+    // それ以外（成果物☑→TRUE等）は何もしない
   } catch (err) {
     Logger.log('onApprovalEdit error: ' + err);
   }
@@ -1034,13 +1044,19 @@ function isTruthy_(v) {
   const s = String(v).toLowerCase().trim();
   return s === 'true' || s === '1' || s === 'yes' || s === '✓' || s === '☑' || s === '✅';
 }
-// 空 or TRUE系 → 承認 / 明示的にFALSE系 → 不承認（XP取消）
+// 空 or TRUE系 → 承認 / 明示的にFALSE系 → 不承認（成果物用・即時承認系）
 function isApproved_(v) {
   if (v === false) return false;
   const s = String(v).toLowerCase().trim();
   if (s === '') return true;
   if (s === 'false' || s === '0' || s === 'no' || s === '✗' || s === '☒' || s === '❌') return false;
   return true;
+}
+// TRUE系のみ → 承認（成果報告用・明示チェック必須）
+function isApprovedExplicit_(v) {
+  if (v === true) return true;
+  const s = String(v).toLowerCase().trim();
+  return s === 'true' || s === '1' || s === 'yes' || s === '✓' || s === '☑' || s === '✅';
 }
 function formatDate_(v) {
   if (!v) return '';
@@ -1065,8 +1081,8 @@ function installAllTriggers() {
   ScriptApp.newTrigger('onFormSubmit').forSpreadsheet(ss).onFormSubmit().create();
   SpreadsheetApp.getUi().alert(
     '✅ トリガー登録完了\n\n' +
-    '・フォーム送信 → 即時XP加算 + Discord通知\n' +
-    '・承認☑を外す → 取消通知（XP減算）'
+    '・フォーム送信 → 即時カウント加算 + Discord通知\n' +
+    '・承認☑を外す → 取消通知（カウント減算）'
   );
 }
 
@@ -1125,7 +1141,7 @@ function setupSheet() {
 
   SpreadsheetApp.getUi().alert(
     '✅ スプシ初期化完了（Phase 2 対応）\n\n' +
-    '・新規提出は「承認」が自動TRUE → 即XP加算\n' +
+    '・新規提出は「承認」が自動TRUE → 即カウント加算\n' +
     '・不適切提出は☑を外すと取消通知が飛びます\n' +
     '・カテゴリ列で 📦 成果物 / 🏆 成果 を判別'
   );

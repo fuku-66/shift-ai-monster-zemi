@@ -26,18 +26,18 @@
   }
   .doc-section p, .doc-section li { font-size: 14px; line-height: 1.8; color: #ddd; }
   .doc-section ul, .doc-section ol { margin-left: 24px; margin-bottom: 12px; }
-  table.evolution-table {
+  table.rule-table {
     width: 100%;
     border-collapse: collapse;
     margin: 16px 0;
     font-size: 13px;
   }
-  table.evolution-table th, table.evolution-table td {
+  table.rule-table th, table.rule-table td {
     border: 1px solid rgba(241,196,15,0.3);
-    padding: 8px 12px;
+    padding: 10px 14px;
     text-align: left;
   }
-  table.evolution-table th { background: rgba(241,196,15,0.15); color: #F1C40F; }
+  table.rule-table th { background: rgba(241,196,15,0.15); color: #F1C40F; }
   .step {
     counter-increment: step-counter;
     padding-left: 40px;
@@ -54,7 +54,7 @@
     font-weight: bold;
   }
   .steps { counter-reset: step-counter; list-style: none; margin-left: 0; }
-  .secret {
+  .note {
     background: rgba(241,196,15,0.08);
     border-left: 4px solid #F1C40F;
     padding: 12px 16px;
@@ -63,6 +63,21 @@
     font-size: 13px;
     border-radius: 0 4px 4px 0;
   }
+  .cat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .cat-card {
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 13px;
+  }
+  .cat-card h3 { margin: 0 0 8px; font-size: 15px; }
+  .cat-card p { margin: 4px 0; color: #ccc; }
+  .cat-card .point { font-size: 28px; font-weight: bold; margin: 8px 0; }
+  @media (max-width: 480px) { .cat-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -87,101 +102,90 @@
 
 <main class="container">
 
+  <!-- ① 目的 -->
   <section class="doc-section">
     <h2>🥚 プロジェクトの目的</h2>
     <p>みんなで1体のモンスターを育てよう。<br>
-    課題を提出するたびにカウントが積み上がり、モンスターが進化していきます。<br>
-    5段階の進化を目指して、クラス全員で挑戦しよう！</p>
-    <div class="secret">
-      ✨ どんな姿に進化するかは、提出してからのお楽しみ。
+    課題に取り組んで提出するたびにポイントが積み上がり、みんなで一緒にモンスターを進化させていきます。</p>
+    <div class="note">
+      ✨ どんな姿に進化するかは提出してからのお楽しみ。5段階の最終形態を目指そう！
     </div>
   </section>
 
+  <!-- ② 2つの提出カテゴリ -->
   <section class="doc-section">
-    <h2>📋 2つのカテゴリ</h2>
-    <div style="display:grid;grid-template-columns:1fr;gap:12px;margin:12px 0 16px;">
-      <div style="border:2px solid #3498DB;border-radius:8px;padding:14px;background:rgba(52,152,219,0.05);">
-        <h3 style="color:#5DADE2;margin-top:0;">📦 成果物（Output）</h3>
-        <p style="margin:0;">自分で作ったもの。AIで生成・制作したもの。</p>
-        <p style="margin:6px 0 0;color:#aaa;font-size:12px;">例: AI画像、AI文章、スライド、動画、デザイン、コード</p>
+    <h2>📋 2種類の提出</h2>
+    <div class="cat-grid">
+      <div class="cat-card" style="border:2px solid #3498DB;background:rgba(52,152,219,0.06);">
+        <h3 style="color:#5DADE2;">📦 成果物</h3>
+        <div class="point" style="color:#5DADE2;">+1 pt</div>
+        <p>AIを使って自分で作ったもの</p>
+        <p style="color:#aaa;font-size:12px;margin-top:8px;">例: AI画像・文章・スライド・コード・デザインなど</p>
+        <p style="color:#5DADE2;font-size:12px;margin-top:8px;">✅ 提出と同時に即カウント</p>
       </div>
-      <div style="border:2px solid #F1C40F;border-radius:8px;padding:14px;background:linear-gradient(135deg,rgba(241,196,15,0.08),rgba(230,126,34,0.05));">
-        <h3 style="color:#F1C40F;margin-top:0;">🏆 成果（Result） — 成果物3件分にカウント</h3>
-        <p style="margin:0;">結果として得た実績。</p>
-        <p style="margin:6px 0 0;color:#aaa;font-size:12px;">例: コンテスト入賞、受賞、外部評価、採用、成績アップ、点数アップ</p>
-        <p style="margin:6px 0 0;color:#F1C40F;font-size:12px;">⚠️ 個人情報を含むため、講師が内容を確認してから公開されます</p>
+      <div class="cat-card" style="border:2px solid #F1C40F;background:rgba(241,196,15,0.06);">
+        <h3 style="color:#F1C40F;">🏆 成果</h3>
+        <div class="point" style="color:#F1C40F;">+3 pt</div>
+        <p>外部から評価された実績</p>
+        <p style="color:#aaa;font-size:12px;margin-top:8px;">例: コンテスト入賞・受賞・成績アップ・点数アップなど</p>
+        <p style="color:#F1C40F;font-size:12px;margin-top:8px;">⏳ 講師が確認してからカウント</p>
       </div>
     </div>
-    <div class="secret">
-      💡 迷ったら：「自分で作った」→📦 成果物 / 「外から評価された」→🏆 成果
+    <div class="note">
+      💡 迷ったら：「自分で作った」→ 📦 成果物 ／ 「外から評価された」→ 🏆 成果
     </div>
   </section>
 
+  <!-- ③ 提出の流れ -->
   <section class="doc-section">
     <h2>🚶 提出の流れ</h2>
-    <h3>📦 成果物の場合</h3>
+    <h3>📦 成果物を提出する場合</h3>
     <ol class="steps">
-      <li class="step">「課題一覧」から、挑戦する課題を選ぶ</li>
+      <li class="step">「課題一覧」から挑戦したい課題を選ぶ</li>
       <li class="step">AIを使って課題に取り組む</li>
-      <li class="step">「📝 提出する」ボタン → Googleフォームに記入して送信</li>
-      <li class="step"><strong>送信時に即カウント！</strong>モンスターが育ち、Discordに通知</li>
+      <li class="step">「📝 提出する」ボタンを押してGoogleフォームに記入・送信</li>
+      <li class="step"><strong>送信と同時に +1pt カウント！</strong> Discordに通知が届く</li>
     </ol>
 
-    <h3>🏆 成果の場合</h3>
+    <h3>🏆 成果を報告する場合</h3>
     <ol class="steps">
-      <li class="step">課題一覧ページの「🏆 成果を報告する」ボタンを押す（or ホームから）</li>
-      <li class="step">タイトル・成果の種類・経緯を記入</li>
-      <li class="step">受賞ページや成績表のURL・写真を添付（任意・あると説得力UP）</li>
-      <li class="step"><strong>講師が内容確認後に公開！</strong>個人情報チェック後にカウント＋Discord通知</li>
+      <li class="step">課題一覧ページの「🏆 成果を報告する」ボタンを押す</li>
+      <li class="step">成果のタイトル・種類・内容を記入して送信</li>
+      <li class="step">講師が内容を確認（個人情報チェック）</li>
+      <li class="step"><strong>確認後に +3pt カウント！</strong> Discordに通知が届く</li>
     </ol>
   </section>
 
+  <!-- ④ 進化の仕組み -->
   <section class="doc-section">
     <h2>🐉 進化の仕組み（5段階）</h2>
-    <table class="evolution-table">
+    <table class="rule-table">
       <thead>
-        <tr><th>Lv</th><th>姿</th><th>累計カウント</th><th>備考</th></tr>
+        <tr><th>Lv</th><th>姿</th><th>累計ポイント</th><th>備考</th></tr>
       </thead>
       <tbody>
-        <tr><td>1</td><td>🥚 タマゴ</td><td>0〜9 件</td><td>全員共通のスタート地点</td></tr>
-        <tr><td>2</td><td>🐣 ヒナ</td><td>10〜19 件</td><td>10件達成で進化</td></tr>
-        <tr><td>3</td><td>❓ 子モンスター</td><td>20〜29 件</td><td>20件達成で進化</td></tr>
-        <tr><td>4</td><td>❓ 成長モンスター</td><td>30〜39 件</td><td>30件達成で進化</td></tr>
-        <tr><td>5</td><td>❓ 最終形態</td><td>40 件〜</td><td>40件達成で最終形態に</td></tr>
+        <tr><td>1</td><td>🥚 タマゴ</td><td>0〜9 pt</td><td>スタート地点</td></tr>
+        <tr><td>2</td><td>🐣 ヒナ</td><td>10〜19 pt</td><td>10pt で進化</td></tr>
+        <tr><td>3</td><td>❓ 子モンスター</td><td>20〜29 pt</td><td>20pt で進化</td></tr>
+        <tr><td>4</td><td>❓ 成長モンスター</td><td>30〜39 pt</td><td>30pt で進化</td></tr>
+        <tr><td>5</td><td>❓ 最終形態</td><td>40 pt〜</td><td>40pt で最終形態に！</td></tr>
       </tbody>
     </table>
-
-    <div class="secret">
-      🎯 モンスターの姿は順次公開予定。お楽しみに！
+    <div class="note">
+      🎯 Lv3以降のモンスターの姿は順次公開予定。お楽しみに！
     </div>
   </section>
 
+  <!-- ⑤ 提出時のヒント -->
   <section class="doc-section">
-    <h2>⭐ カウントルール</h2>
-    <table class="evolution-table">
-      <thead>
-        <tr><th>種類</th><th>カウント</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>📦 成果物 1件</td><td>+1 件</td></tr>
-        <tr><td>🏆 成果報告 1件</td><td>+3 件（成果物3件分）</td></tr>
-      </tbody>
-    </table>
-
-    <p style="margin-top:12px;">📦 成果物は提出すると <strong>即カウント＋Discord通知</strong>。<br>
-    🏆 成果報告は<strong>講師が内容を確認してから</strong>カウント＋Discord通知されます（個人情報チェックのため）</p>
-  </section>
-
-  <section class="doc-section">
-    <h2>📝 提出時のヒント</h2>
+    <h2>📝 提出のコツ</h2>
     <ul>
-      <li>スクショ1枚＋コメント数行でOK。完璧を目指さなくていい</li>
-      <li>AIにやらせるだけじゃなく、自分の言葉で「気づいたこと」を一言添えるとGood</li>
-      <li>同じ課題に何度挑戦してもOK（ただし内容は変えよう）</li>
-      <li>🏆 成果報告は参考URL・スクショがあると伝わりやすい</li>
-      <li>⚠️ 提出内容はDiscordチャンネルに成果共有として通知されます。フルネーム・住所・学校名・電話番号などの個人情報は記入しないでください</li>
-      <li>🏆 成果報告は、SHIFT AIの公式ブログやセミナーで生徒の成果事例として紹介される場合があります（フォーム提出時に「同意します」を選択した場合のみ）</li>
-      <li>不適切な提出（コピペ・空っぽ）は後から取り消されてカウントが減ることがあるので注意</li>
+      <li>スクショ1枚＋一言コメントでOK。完璧じゃなくていい</li>
+      <li>AIにやらせるだけでなく、「気づいたこと」や「工夫したこと」を添えよう</li>
+      <li>同じ課題に何度挑戦してもOK（ただし内容を変えよう）</li>
+      <li>🏆 成果報告には受賞ページのURLやスクショがあると伝わりやすい</li>
+      <li>⚠️ 提出内容はDiscordに通知されます。フルネーム・学校名・電話番号などは書かないで</li>
+      <li>⚠️ 不正な提出（コピペ・空っぽ）は取り消されてポイントが減ることがあります</li>
     </ul>
   </section>
 
@@ -203,12 +207,11 @@
     const m = window.MZ_MONSTER.determineMonster(stats, totalCount);
     const img = document.getElementById('mini-monster-img');
     const emoji = document.getElementById('mini-monster-emoji');
-    const placeholder = m.placeholder || '画像準備中';
     const showPlaceholder = () => {
       if (img) img.style.display = 'none';
       if (emoji) {
         emoji.style.display = 'flex';
-        emoji.textContent = placeholder;
+        emoji.textContent = m.placeholder || '🥚';
         emoji.classList.add('placeholder-text');
       }
     };

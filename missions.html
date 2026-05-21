@@ -147,14 +147,14 @@
 
   <div class="help-banner">
     💡 課題を選んで「📝 提出する」を押すと、提出フォームが開きます<br>
-    🏆 受賞・点数アップ等の<strong>成果</strong>は下のボタンから報告（XP×3倍）
+    🏆 受賞・点数アップ等の<strong>成果</strong>は下のボタンから報告（成果物3件分にカウント）
   </div>
 
   <a id="result-cta" class="result-cta" href="#" target="_blank" rel="noopener">
     <span class="cta-icon">🏆</span>
     <span class="cta-text">
       <strong>成果を報告する</strong>
-      コンテスト入賞・受賞・成績アップ・点数アップ・採用など（XP×3倍）
+      コンテスト入賞・受賞・成績アップ・点数アップ・採用など（成果物3件分にカウント・講師承認後に公開）
     </span>
     <span class="cta-arrow">›</span>
   </a>
@@ -185,7 +185,6 @@ const SUBJECTS = [
   { key: '勉強法',         icon: '📚', color: '#BA68C8' },
   { key: 'クリエイティブ', icon: '🎨', color: '#F06292' },
 ];
-const XP_BY_STAR = { 1:15, 2:25, 3:40, 4:60, 5:80 };
 let MISSIONS = [];
 let FORM_INFO = null;
 
@@ -215,17 +214,28 @@ async function loadMonster() {
   try {
     const state = await window.MZ_API.fetchState();
     const stats = state.stats || { ai:0, eng:0, math:0, study:0, creative:0 };
-    const m = window.MZ_MONSTER.determineMonster(stats);
+    const totalCount = (typeof state.totalCount === 'number')
+      ? state.totalCount
+      : Object.values(stats).reduce((a, b) => a + b, 0);
+    const m = window.MZ_MONSTER.determineMonster(stats, totalCount);
     const img = document.getElementById('mini-monster-img');
     const emoji = document.getElementById('mini-monster-emoji');
-    img.src = m.imagePath;
-    img.alt = m.monsterName;
-    let triedSvg = false;
-    img.onerror = () => {
-      if (!triedSvg && img.src.endsWith('.png')) { triedSvg = true; img.src = m.imagePath.replace('.png','.svg'); return; }
-      img.style.display = 'none';
-      if (emoji) emoji.style.display = 'block';
+    const placeholder = m.placeholder || '画像準備中';
+    const showPlaceholder = () => {
+      if (img) img.style.display = 'none';
+      if (emoji) {
+        emoji.style.display = 'flex';
+        emoji.textContent = placeholder;
+        emoji.classList.add('placeholder-text');
+      }
     };
+    if (!m.imagePath) {
+      showPlaceholder();
+    } else if (img) {
+      img.src = m.imagePath;
+      img.alt = m.monsterName;
+      img.onerror = showPlaceholder;
+    }
     document.getElementById('mini-lv').textContent = 'Lv.' + m.lv;
   } catch (e) {}
 }
@@ -295,17 +305,12 @@ function render(filter) {
       .sort((a, b) => a.difficulty - b.difficulty);
     if (!list.length) return '';
     const cards = list.map(m => {
-      const stars = '★'.repeat(m.difficulty) + '☆'.repeat(5 - m.difficulty);
       const url = buildPrefilledUrl(m);
       const btnHtml = url
         ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="submit-btn">📝 提出する</a>`
         : `<button class="submit-btn disabled" disabled>📝 提出フォーム準備中</button>`;
       return `
         <div class="mission-card" style="--subject-color:${s.color}">
-          <div class="head">
-            <span class="stars">${stars}</span>
-            <span class="xp-badge">+${XP_BY_STAR[m.difficulty]} XP</span>
-          </div>
           <div class="title">${escapeHtml(m.title)}</div>
           <div class="foot">${btnHtml}</div>
         </div>`;
