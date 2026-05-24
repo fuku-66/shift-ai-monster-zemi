@@ -26,11 +26,15 @@
     }
     const lvInfo = calcLv(count);
 
+    const imgKey = (cfg.LV_IMAGE_KEYS || {})[lvInfo.lv];
+    const fileName = imgKey && (cfg.MONSTER_IMAGES || {})[imgKey];
+    const imagePath = fileName ? (cfg.IMAGE_BASE || '') + fileName : '';
+
     return {
       lv: lvInfo.lv,
       total: count,
       monsterName: lvInfo.name,
-      imagePath: '',
+      imagePath,
       placeholder: LV_EMOJI[lvInfo.lv] || '🥚',
       dominantAxis: null,
       isBalance: false,

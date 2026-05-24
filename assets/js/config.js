@@ -39,11 +39,23 @@ window.MZ_CONFIG = {
     '成績アップ', '点数アップ', 'その他',
   ],
 
-  // 画像プレースホルダーテキスト（差し替えるまで表示）
+  // 画像プレースホルダーテキスト（画像読込失敗時のフォールバック）
   PLACEHOLDER_TEXT: '画像準備中',
 
+  // 画像の基準パス
+  IMAGE_BASE: 'assets/images/monsters/',
+
+  // 進化に使う1ライン（現在: フェンリル系もふ狼）
+  LV_IMAGE_KEYS: {
+    1: 'lv1',
+    2: 'lv2',
+    3: 'lv3',
+    4: 'lv4',
+    5: 'lv5',
+  },
+
   // ────────────────────────────────────────────
-  // 以下は画像差し替え後に再利用予定（現在は未使用）
+  // 以下は教科分岐モンスター案（旧仕様・現在は未使用）
   // ────────────────────────────────────────────
   MONSTER_BY_AXIS: {
     ai:       { baby: '子サイバービースト', final: 'サイバービースト' },
@@ -54,6 +66,11 @@ window.MZ_CONFIG = {
     balance:  { baby: '子ユニコーン',       final: 'ユニコーン神獣' },
   },
   MONSTER_IMAGES: {
+    lv1:                 'monster-lv1.png',
+    lv2:                 'monster-lv2.png',
+    lv3:                 'monster-lv3.png',
+    lv4:                 'monster-lv4.png',
+    lv5:                 'monster-lv5.png',
     egg:                 'monster-0-egg.png',
     hatchling:           'monster-1-hatchling.png',
     'ai-baby':           'monster-2-cyber-baby.png',
