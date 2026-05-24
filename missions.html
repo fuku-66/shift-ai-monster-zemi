@@ -126,10 +126,25 @@
 <body>
 
 <!-- 右下固定ミニアバター -->
-<div id="mini-monster" class="mini-monster mini-monster-br" onclick="location.href='index.html'" title="ホームに戻る">
+<div id="mini-monster" class="mini-monster mini-monster-br" onclick="openMonsterPopup()" title="モンスター詳細">
   <img id="mini-monster-img" src="" alt="">
   <div id="mini-monster-emoji" class="mini-emoji">🥚</div>
   <div class="mini-lv" id="mini-lv">Lv.1</div>
+</div>
+
+<!-- モンスター詳細ポップアップ -->
+<div class="modal-backdrop" id="monster-modal-backdrop">
+  <div class="modal monster-modal">
+    <button class="close" onclick="closeMonsterPopup()">×</button>
+    <div class="monster-image-wrap" style="margin:0 auto 16px;">
+      <img id="modal-monster-img" src="" alt="" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated;">
+      <div id="modal-monster-emoji" class="monster-placeholder">🥚</div>
+    </div>
+    <div id="modal-monster-name" class="monster-name">…</div>
+    <div id="modal-monster-lv" class="monster-lv" style="margin-bottom:10px;">Lv.1</div>
+    <div id="modal-monster-meta" style="color:#d8c5ff;font-size:13px;margin-bottom:16px;"></div>
+    <a href="index.html" style="display:inline-block;color:#F1C40F;font-size:12px;text-decoration:underline;">ホームで詳細を見る →</a>
+  </div>
 </div>
 
 <header class="site-header">
@@ -210,6 +225,8 @@ let FORM_INFO = null;
   });
 })();
 
+let _monsterData = null;
+
 async function loadMonster() {
   try {
     const state = await window.MZ_API.fetchState();
@@ -218,6 +235,8 @@ async function loadMonster() {
       ? state.totalCount
       : Object.values(stats).reduce((a, b) => a + b, 0);
     const m = window.MZ_MONSTER.determineMonster(stats, totalCount);
+    _monsterData = { m, state };
+
     const img = document.getElementById('mini-monster-img');
     const emoji = document.getElementById('mini-monster-emoji');
     const placeholder = m.placeholder || '画像準備中';
@@ -239,6 +258,53 @@ async function loadMonster() {
     document.getElementById('mini-lv').textContent = 'Lv.' + m.lv;
   } catch (e) {}
 }
+
+function openMonsterPopup() {
+  const backdrop = document.getElementById('monster-modal-backdrop');
+  if (!backdrop) return;
+  if (_monsterData) {
+    const { m, state } = _monsterData;
+    const mImg = document.getElementById('modal-monster-img');
+    const mEmoji = document.getElementById('modal-monster-emoji');
+    if (m.imagePath && mImg) {
+      mImg.src = m.imagePath;
+      mImg.alt = m.monsterName;
+      mImg.style.display = '';
+      if (mEmoji) mEmoji.style.display = 'none';
+    } else if (mEmoji) {
+      if (mImg) mImg.style.display = 'none';
+      mEmoji.style.display = 'flex';
+      mEmoji.textContent = m.placeholder || '🥚';
+    }
+    const cfg = window.MZ_CONFIG;
+    const thresholds = cfg.LEVEL_THRESHOLDS || [0,10,20,30,40];
+    const nextThreshold = thresholds[m.lv];
+    const remaining = typeof nextThreshold === 'number' ? Math.max(0, nextThreshold - m.total) : 0;
+    document.getElementById('modal-monster-name').textContent = m.monsterName;
+    document.getElementById('modal-monster-lv').textContent = 'Lv.' + m.lv;
+    document.getElementById('modal-monster-meta').textContent =
+      `累計 ${m.total} 件` +
+      (remaining > 0 ? ` ｜ 次のLvまで あと ${remaining} 件` : ' ｜ 🌟 最終形態到達');
+  }
+  backdrop.classList.add('show');
+}
+
+function closeMonsterPopup() {
+  const backdrop = document.getElementById('monster-modal-backdrop');
+  if (backdrop) backdrop.classList.remove('show');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const backdrop = document.getElementById('monster-modal-backdrop');
+  if (backdrop) {
+    backdrop.addEventListener('click', e => {
+      if (e.target.id === 'monster-modal-backdrop') closeMonsterPopup();
+    });
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeMonsterPopup();
+  });
+});
 
 async function loadFormInfo() {
   const cfg = window.MZ_CONFIG;
